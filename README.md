@@ -154,8 +154,49 @@ fields, compared fields, expected cardinality, uniqueness rule, rival-candidate
 margin, and acceptance threshold. Linkage coverage and disagreement are
 reported by source, geography, and sex where those fields are available.
 
+For Rajasthan, Upnaam reuses the existing `milaan_raj` links between the 2021
+rural ration-card census and the 2018 electoral rolls. The source pipeline
+contains approximately 15.9 million cards and 62.8 million members with names,
+ages, and explicit relationships. Only its high-precision T1 and T2 person
+links are eligible; T3 links are excluded. The existing negative-control audit
+estimates false-discovery rates of approximately 0.1% for T1 and T2. Upnaam
+does not rebuild or broaden that linkage. It records the upstream artifact
+revision, linkage tier, and precision evidence with every Rajasthan-derived
+result.
+
 No hand-labeled token corpus is required by the design. Any manual review of
 record links is an audit of linkage precision, not a source of surname labels.
+
+## Pipeline boundaries
+
+Each transformation is an independent, rerunnable stage with a declared input
+and output artifact. No stage silently repeats or alters an earlier stage's
+work. Pipeline scripts orchestrate the transformations; reusable logic lives in
+the `upnaam` package and is tested directly.
+
+The planned stages are:
+
+| Stage | Responsibility | Principal output |
+| --- | --- | --- |
+| `00_profile_sources` | Audit schemas, keys, missingness, scripts, and source coverage | source profile and data dictionary |
+| `01_normalize_names` | Preserve raw strings and create deterministic comparison forms and tokens | normalized records Parquet |
+| `02_extract_candidates` | Emit first-, last-, and other explicitly defined positional candidates without selecting a winner | surname candidates Parquet |
+| `03_link_records` | Link roll, land, and ration observations under source-specific linkage contracts | source links Parquet |
+| `04_align_names` | Align token sequences within accepted links and classify alignment operations | aligned name pairs Parquet |
+| `05_learn_edit_model` | Estimate source- and script-specific edit weights from linked pairs and negative controls | versioned edit-model artifact |
+| `06_cluster_variants` | Build conservative token-variant clusters using the edit model and linked evidence | variants Parquet |
+| `07_resolve_surnames` | Select the recorded surname from canonicalized candidates or abstain | recorded-surname results Parquet |
+| `08_resolve_family_surnames` | Add separately reported family surnames supported by relative, household, land, or ration evidence | family-surname results Parquet |
+| `09_evaluate` | Compare rules, measure coverage and error, and verify artifact and row-count contracts | evaluation report and manifest |
+
+Normalization, record linkage, name alignment, edit-distance learning, variant
+clustering, recorded-surname resolution, and family-surname resolution remain
+separate even when one command eventually runs the complete pipeline. Every
+stage records its configuration and upstream artifact hashes so an output can
+be reproduced without rerunning unrelated stages.
+
+These files will be created when their stages are implemented. The repository
+does not contain empty placeholder scripts.
 
 ## Version 1 scope
 
