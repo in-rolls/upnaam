@@ -203,6 +203,7 @@ The planned stages are:
 | `07_resolve_linked_surnames` | Use alternate spacing to split a roll token only when the external final token is an exact suffix | linked recorded-surname results Parquet |
 | `08_resolve_family_surnames` | Add separately reported family surnames supported by relative, household, land, or ration evidence | family-surname results Parquet |
 | `09_evaluate` | Compare rules, measure coverage and error, and verify artifact and row-count contracts | evaluation report and manifest |
+| `10_resolve_punjab_electors` | Join the frozen Punjab roll to its validated Indicate transcription and apply the final-token rule to every source row | restricted elector-level Punjab results |
 
 Normalization, record linkage, name alignment, edit-distance learning, variant
 clustering, recorded-surname resolution, and family-surname resolution remain
@@ -254,6 +255,8 @@ probabilities.
 
 The exact baseline rules and the assumptions they do and do not make are
 frozen in [the Version 1 assumptions](https://github.com/in-rolls/upnaam/blob/main/docs/assumptions.md).
+The first person-level implementation and its row-join contract are documented
+in [the Punjab elector artifact](docs/punjab-electors.md).
 The first full four-state diagnostic is in
 [`data/audit/evaluation.csv`](https://github.com/in-rolls/upnaam/blob/main/data/audit/evaluation.csv).
 It records the approved first-token rule for Maharashtra and final-token rules

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import re
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import numpy as np
 import pandas as pd
@@ -78,9 +78,10 @@ def normalize_electoral_name_table(
                     "source_row": range(source_row, source_row + len(chunk)),
                     "name_raw": chunk["english_name"],
                     "relative_name_raw": chunk["father_husband_name"],
-                    "weight": pd.to_numeric(chunk["n_times"], errors="raise").astype(
-                        "int64"
-                    ),
+                    "weight": cast(
+                        "pd.Series",
+                        pd.to_numeric(chunk["n_times"], errors="raise"),
+                    ).astype("int64"),
                 }
             )
             frame["name_normalized"] = frame["name_raw"].map(normalize_name)

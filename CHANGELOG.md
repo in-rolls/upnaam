@@ -10,3 +10,5 @@ All notable changes to Upnaam will be documented here.
 - Add token alignment, edit evidence, conservative variant clustering,
   linked-name segmentation, and abstaining surname resolvers.
 - Add full weighted diagnostics for Bihar, Rajasthan, Maharashtra, and Punjab.
+- Add a row-preserving Punjab elector resolver using the validated Indicate
+  native/Latin transcription artifact.

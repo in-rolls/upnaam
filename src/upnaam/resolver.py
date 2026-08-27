@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 
 import pandas as pd
 
@@ -34,23 +34,24 @@ def _validate_elector_records(records: pd.DataFrame) -> None:
     missing = set(ELECTOR_INPUT_COLUMNS).difference(records.columns)
     if missing:
         raise ValueError(f"elector records are missing columns: {sorted(missing)}")
-    identifiers = records["elector_id"]
+    identifiers = cast("pd.Series", records["elector_id"])
     valid_identifier = identifiers.map(
         lambda value: isinstance(value, str) and bool(value.strip())
     )
-    if not valid_identifier.all():
+    if not bool(valid_identifier.all()):
         raise ValueError("elector_id must contain nonempty strings")
-    duplicates = identifiers[identifiers.duplicated(keep=False)]
+    duplicate_mask = cast("pd.Series", identifiers.duplicated(keep=False))
+    duplicates = cast("pd.Series", identifiers.loc[duplicate_mask])
     if not duplicates.empty:
         examples = sorted(set(duplicates.astype(str)))[:3]
         raise ValueError(f"elector_id must be unique; duplicates include {examples}")
-    states = records["state"]
+    states = cast("pd.Series", records["state"])
     valid_state = states.map(
         lambda value: (
             isinstance(value, str) and bool(value) and value == value.strip().casefold()
         )
     )
-    if not valid_state.all():
+    if not bool(valid_state.all()):
         raise ValueError("state must contain lowercase, stripped, nonempty strings")
 
 
@@ -76,9 +77,9 @@ def resolve_electors(
     _validate_elector_records(records)
     effective_policy = policy or load_default_resolver_policy()
     output: list[dict[str, object]] = []
-    for elector_id, state, name in records.loc[:, ELECTOR_INPUT_COLUMNS].itertuples(
-        index=False, name=None
-    ):
+    for elector_id, state, name in records.loc[
+        :, list(ELECTOR_INPUT_COLUMNS)
+    ].itertuples(index=False, name=None):
         candidates = extract_surname_candidates(name)
         position = effective_policy.position_for(state)
         selected: NameToken | None = None
@@ -113,4 +114,4 @@ def resolve_electors(
                 "resolver_revision": effective_policy.revision,
             }
         )
-    return pd.DataFrame(output, columns=ELECTOR_OUTPUT_COLUMNS)
+    return pd.DataFrame(output, columns=cast("Any", ELECTOR_OUTPUT_COLUMNS))

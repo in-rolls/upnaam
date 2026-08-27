@@ -3,6 +3,19 @@
 Upnaam's public inputs are parsed name records and accepted cross-source links.
 Raw electoral, ration, and land records remain outside this repository.
 
+## Punjab elector rows
+
+The Punjab person-level stage uses the frozen Dataverse version 25.0 roll and
+the same-length Indicate transcription artifact. It validates exact equality
+of the 11 native fields duplicated across the two sources before joining by
+zero-based source-row order. It rejects a missing row, extra row, reordered
+row, or changed native field. The complete assumptions and output schema are
+documented in [Punjab elector artifact](punjab-electors.md).
+
+The roll's own `id` is neither complete nor unique. The stage never drops or
+coalesces rows by that field; it creates a source-revision-qualified key from
+the validated source-row position and retains the original ID separately.
+
 ## Electoral name table
 
 The diagnostic state tables contain `english_name`,
@@ -51,6 +64,9 @@ one unique raw name pair per accepted land account.
   a manifest.
 - Every recorded-surname row carries the immutable `resolver_revision` that
   selected its state-position rule.
+- A native surname can remain resolved when its independent Latin token cannot
+  be aligned; the Latin and ASCII fields stay null and carry an explicit
+  transliteration status.
 - `surname_provenance` is `written_first_token` or `written_final_token` for a
   positional selection and names an external source only for a documented
   linked-record operation.

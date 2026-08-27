@@ -9,6 +9,7 @@ data/audit/*.json
 data/audit/*.parquet
 data/derived/
 data/manifests/
+data/source/
 dist/
 docs/_build/
 htmlcov/

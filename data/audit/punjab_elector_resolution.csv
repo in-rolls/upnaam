@@ -1,0 +1,6 @@
+group,value,rows,native_resolved,ascii_resolved,abstained,transliteration_aligned,transliteration_token-count-mismatch,transliteration_ineligible-latin-token,transliteration_no-surname-selected
+overall,all,19119006,16899471,16898030,2219535,16898030,1319,122,2219535
+sex,female,8829109,7571149,7570448,1257960,7570448,661,40,1257960
+sex,male,10289897,9328322,9327582,961575,9327582,658,82,961575
+relationship,father,11755514,10552234,10551083,1203280,10551083,1056,95,1203280
+relationship,husband,7363492,6347237,6346947,1016255,6346947,263,27,1016255

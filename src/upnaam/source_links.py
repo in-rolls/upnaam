@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 
 import pandas as pd
 import pyarrow as pa
@@ -149,9 +149,9 @@ def _rajasthan_bucket_frame(
     age_offset: float,
 ) -> pd.DataFrame:
     links = pd.read_parquet(links_path)
-    links = links.loc[links["tier"].isin(accepted_tiers)].copy()
+    links = links.loc[links["tier"].isin(sorted(accepted_tiers))].copy()
     if links.empty:
-        return pd.DataFrame(columns=LINK_COLUMNS)
+        return pd.DataFrame(columns=cast("Any", LINK_COLUMNS))
     if (
         links["elector_uid"].duplicated().any()
         or links.duplicated(["card_no", "member_no"]).any()

@@ -32,6 +32,14 @@ The four `instate` tables contain Roman-script aggregate name pairs, not
 elector-level records. Their `n_times` field weights every reported diagnostic.
 They cannot support sex, household, or relation-type estimates.
 
+The Punjab person-level stage applies the same final-token rule to the native
+Gurmukhi roll name. Its Indicate transcription supplies an alternate script,
+not evidence for choosing a different surname. The Latin token is copied only
+at the selected native position and only when complete token counts agree.
+Token-count disagreement leaves the Latin and ASCII fields null. Full source,
+join, key, and schema rules are frozen in
+[Punjab elector artifact](punjab-electors.md).
+
 ## State position
 
 `resolver-v1` uses only these approved positional rules:
@@ -92,4 +100,6 @@ matching; supported spelling canonicalization remains a separate stage.
 
 No household surname propagation, father-versus-husband transmission model,
 automatic state-order detection, English name parser, caste inference, or
-manual surname annotation is used.
+manual surname annotation is used. The Punjab person-level artifact likewise
+does not use the relative-name or household fields to alter its final-token
+selection.
