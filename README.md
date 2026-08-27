@@ -256,7 +256,7 @@ probabilities.
 The exact baseline rules and the assumptions they do and do not make are
 frozen in [the Version 1 assumptions](https://github.com/in-rolls/upnaam/blob/main/docs/assumptions.md).
 The first person-level implementation and its row-join contract are documented
-in [the Punjab elector artifact](docs/punjab-electors.md).
+in [the Punjab elector artifact](https://github.com/in-rolls/upnaam/blob/main/docs/punjab-electors.md).
 The first full four-state diagnostic is in
 [`data/audit/evaluation.csv`](https://github.com/in-rolls/upnaam/blob/main/data/audit/evaluation.csv).
 It records the approved first-token rule for Maharashtra and final-token rules
