@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from importlib.resources import files
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Literal, cast
 
@@ -38,20 +39,8 @@ class ResolverPolicy:
         return self.state_positions.get(state)
 
 
-def load_resolver_policy(path: Path) -> ResolverPolicy:
-    """Load and validate a versioned resolver policy.
-
-    Args:
-        path: JSON policy file.
-
-    Returns:
-        Validated immutable policy.
-
-    Raises:
-        ValueError: If the policy has missing, unknown, or invalid fields.
-    """
-    with path.open(encoding="utf-8") as stream:
-        payload: object = json.load(stream)
+def _parse_resolver_policy(payload: object) -> ResolverPolicy:
+    """Validate a decoded resolver-policy object."""
     if not isinstance(payload, dict):
         raise ValueError("resolver policy must be a JSON object")
     required = {"revision", "state_positions", "unsupported_state"}
@@ -78,3 +67,31 @@ def load_resolver_policy(path: Path) -> ResolverPolicy:
         state_positions=validated,
         unsupported_state="abstain",
     )
+
+
+def load_resolver_policy(path: Path) -> ResolverPolicy:
+    """Load and validate a versioned resolver policy from a file.
+
+    Args:
+        path: JSON policy file.
+
+    Returns:
+        Validated immutable policy.
+
+    """
+    with path.open(encoding="utf-8") as stream:
+        payload: object = json.load(stream)
+    return _parse_resolver_policy(payload)
+
+
+def load_default_resolver_policy() -> ResolverPolicy:
+    """Load the resolver policy packaged with Upnaam.
+
+    Returns:
+        Validated immutable default policy.
+
+    """
+    resource = files("upnaam").joinpath("resolver.json")
+    with resource.open(encoding="utf-8") as stream:
+        payload: object = json.load(stream)
+    return _parse_resolver_policy(payload)

@@ -10,6 +10,7 @@ _ZERO_WIDTH = re.compile("[\u200b-\u200d\ufeff]")
 _DANDA = re.compile("[\u0964\u0965]")
 _WHITESPACE = re.compile(r"\s+")
 _TOKEN = re.compile(r"[^\s\u0964\u0965]+")
+NORMALIZATION_REVISION = "normalization-v1"
 
 
 @dataclass(frozen=True, slots=True)

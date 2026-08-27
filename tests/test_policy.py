@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from upnaam.policy import load_resolver_policy
+from upnaam.policy import load_default_resolver_policy, load_resolver_policy
 
 
 def _write_policy(path: Path, **overrides: object) -> None:
@@ -27,6 +27,13 @@ def test_load_resolver_policy(tmp_path: Path) -> None:
     assert policy.position_for("goa") is None
     with pytest.raises(TypeError):
         policy.state_positions["goa"] = "first"  # type: ignore[index]
+
+
+def test_packaged_default_policy() -> None:
+    policy = load_default_resolver_policy()
+    assert policy.revision == "resolver-v1"
+    assert policy.position_for("maharashtra") == "first"
+    assert policy.position_for("bihar") == "last"
 
 
 @pytest.mark.parametrize(

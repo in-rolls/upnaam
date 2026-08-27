@@ -55,11 +55,24 @@ one unique raw name pair per accepted land account.
   positional selection and names an external source only for a documented
   linked-record operation.
 
+## Elector-row interface
+
+`resolve_electors` requires exactly one row per source-qualified `elector_id`.
+The identifier must be a unique nonempty string. `state` must be lowercase and
+stripped; `name` may be missing, in which case the resolver abstains. Extra
+input columns are accepted but ignored by `resolver-v1`.
+
+The output preserves row count, order, identifier, state, and raw name. It adds
+the nullable normalized recorded-surname token, its exact raw substring,
+selected position, provenance, abstention fields, `normalization_revision`,
+and `resolver_revision`. The interface does not infer family surnames,
+households, token types, caste, or a calibrated confidence score.
+
 ## Resolver policy
 
-`config/resolver.json` is the source of truth for the resolver revision,
-supported states, and first-versus-final token position. The resolver never
-guesses a state policy from the name string. Unsupported states emit
+`src/upnaam/resolver.json` is the packaged source of truth for the resolver
+revision, supported states, and first-versus-final token position. The resolver
+never guesses a state policy from the name string. Unsupported states emit
 `abstained = true`, `abstention_reason = unsupported-state`, and null surname
 fields.
 

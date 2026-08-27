@@ -13,7 +13,7 @@ STATES = ("bihar", "rajasthan", "maharashtra", "punjab")
 
 def main() -> None:
     """Write long-form weighted state and accepted-link diagnostics."""
-    policy_path = ROOT / "config" / "resolver.json"
+    policy_path = ROOT / "src" / "upnaam" / "resolver.json"
     policy = load_resolver_policy(policy_path)
     candidates = [
         ROOT / "data" / "derived" / "candidates" / f"{state}.parquet"

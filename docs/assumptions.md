@@ -2,7 +2,7 @@
 
 This page freezes `resolver-v1`. A rule change must change the resolver
 revision and rerun the evaluation. The machine-readable state policy is
-`config/resolver.json`.
+`src/upnaam/resolver.json`.
 
 ## Recorded surname baseline
 

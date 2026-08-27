@@ -9,7 +9,7 @@ from upnaam.policy import ResolverPolicy, load_resolver_policy
 from upnaam.tabular import load_variant_map, resolve_recorded_surnames
 
 ROOT = Path(__file__).resolve().parents[1]
-POLICY_PATH = ROOT / "config" / "resolver.json"
+POLICY_PATH = ROOT / "src" / "upnaam" / "resolver.json"
 
 
 def parse_args(policy: ResolverPolicy) -> argparse.Namespace:

@@ -61,35 +61,48 @@ no family surname.
 
 ## Unit of input and output
 
-One input row is one elector record from a parsed electoral roll. At minimum,
-the input must contain a source-qualified record identifier and the elector's
-name. Relationship name, relationship type, house number, part, year, state,
-and geography are optional evidence fields whose availability and use are
-recorded.
+One input row is one elector record from a parsed electoral roll. The public
+`resolve_electors` interface requires a unique source-qualified `elector_id`, a
+lowercase `state`, and the raw `name`. Additional columns are allowed but are
+not interpreted by `resolver-v1`.
 
 One output row corresponds to the same elector record. Row count, order, and
 identifier are preserved.
 
-The intended result fields are:
+The public `resolver-v1` result fields are:
 
 | Field | Meaning |
 | --- | --- |
-| `surname` | Canonical recorded surname, if resolved |
+| `surname` | Normalized recorded surname token, if resolved |
 | `surname_raw` | Exact substring selected from the roll name |
-| `surname_position` | `first`, `middle`, `last`, or `single` |
+| `surname_position` | `first` or `last` in `resolver-v1`; null on abstention |
 | `surname_provenance` | Evidence used to select the recorded surname |
-| `surname_score` | Uncalibrated resolution score during development |
-| `family_surname` | Canonical family surname supported by other evidence |
-| `family_surname_raw` | Exact supporting substring from the source record |
-| `family_surname_provenance` | `relative`, `household`, `land_record`, or `ration_card` |
-| `family_surname_score` | Uncalibrated family-surname score during development |
 | `abstained` | Whether Upnaam declined to resolve the recorded surname |
 | `abstention_reason` | Stable reason for abstention |
 | `normalization_revision` | Immutable revision of the normalization artifacts |
 | `resolver_revision` | Immutable revision of the resolution artifacts |
 
-Scores will not be called confidence or probability until calibration against
-independent evidence supports that interpretation.
+Family surnames, household assignments, token-type labels, and scores are not
+produced by this interface. They require separate evidence stages. Scores will
+not be called confidence or probability until calibration against independent
+evidence supports that interpretation.
+
+```python
+import pandas as pd
+from upnaam import resolve_electors
+
+electors = pd.DataFrame(
+    {
+        "elector_id": ["roll:1", "roll:2"],
+        "state": ["bihar", "maharashtra"],
+        "name": ["Poorna Devi", "Patil Ashwini"],
+    }
+)
+resolved = resolve_electors(electors)
+```
+
+This yields `devi` from the final position in Bihar and `patil` from the first
+position in Maharashtra. Input order and identifiers are unchanged.
 
 ## Evidence and assumptions
 
@@ -109,7 +122,7 @@ Upnaam begins with weak, inspectable assumptions:
 `resolver-v1` selects the final eligible token in Bihar, Rajasthan, and Punjab,
 and the first eligible token in Maharashtra. These are explicit state rules,
 not an automatic name-order classifier. Unsupported states abstain. The
-machine-readable policy is `config/resolver.json`.
+machine-readable policy is packaged as `src/upnaam/resolver.json`.
 
 ## Variant resolution
 
