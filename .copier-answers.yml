@@ -1,0 +1,12 @@
+# Managed by copier — records template version for `copier update`. Do not edit.
+_commit: v1.3.0
+_src_path: gh:gojiplus/py-canon
+author_email: gsood07@gmail.com
+author_name: Gaurav Sood
+coverage_floor: 90
+default_branch: main
+description: Resolve surnames in parsed Indian electoral rolls
+needs_cli: false
+org: in-rolls
+package_name: upnaam
+project_name: upnaam

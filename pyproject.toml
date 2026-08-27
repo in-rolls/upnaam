@@ -1,0 +1,80 @@
+[build-system]
+requires = ["uv_build>=0.12.5,<0.13"]
+build-backend = "uv_build"
+
+[project]
+name = "upnaam"
+version = "0.1.0"
+description = "Resolve surnames in parsed Indian electoral rolls"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=2",
+    "pandas>=2.2",
+    "pyarrow>=18,!=19.0.0",
+    "rapidfuzz>=3.14",
+]
+
+[project.urls]
+Repository = "https://github.com/in-rolls/upnaam"
+Issues = "https://github.com/in-rolls/upnaam/issues"
+
+[dependency-groups]
+dev = ["pandas-stubs>=2.2", "pre-commit>=4", "pydoclint>=0.7", "pyright>=1.1.390", "ruff>=0.14", {include-group = "test"}]
+docs = ["sphinx>=8", "furo", "myst-parser", "sphinx-copybutton", "py-canon @ git+https://github.com/gojiplus/py-canon@v1"]
+test = ["pytest>=8", "pytest-cov>=6"]
+
+[tool.uv.build-backend]
+module-name = "upnaam"
+module-root = "src"
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = ["-ra", "--strict-config", "--strict-markers"]
+log_level = "INFO"
+xfail_strict = true
+filterwarnings = ["error"]
+
+[tool.coverage.run]
+source = ["src/upnaam"]
+branch = true
+
+[tool.pyright]
+include = ["src", "scripts"]
+typeCheckingMode = "standard"
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+external = ["DOC"]
+select = [
+    "E", "W", "F", "I", "B", "C4", "UP", "N", "D", "S", "SIM", "T20", "PT", "RUF",
+    "PTH", "RET", "PIE", "FURB", "PERF", "DTZ", "LOG", "G", "TC", "FLY",
+    "RSE", "SLOT", "FA", "A", "EXE", "ICN", "PGH", "PLE", "ARG", "SLF",
+]
+# D203/D213: the google convention the fleet standard picks. W191/D206/D300:
+# ruff's own docs list these as always incompatible with `ruff format`, which
+# the standard also runs.
+ignore = ["D203", "D213", "W191", "D206", "D300"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "D", "ARG", "SLF"]
+"docs/**" = ["D"]
+"scripts/**" = ["D"]
+
+[tool.pydoclint]
+style = "google"
+arg-type-hints-in-docstring = false
+check-return-types = false
+check-yield-types = false
+check-class-attributes = false
+allow-init-docstring = true
+exclude = '\.venv|tests|docs'

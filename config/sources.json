@@ -1,0 +1,19 @@
+{
+  "electoral_name_tables": {
+    "bihar": "../instate/data/names_bihar.csv.gz",
+    "rajasthan": "../instate/data/names_rajasthan.csv.gz",
+    "maharashtra": "../instate/data/names_maharashtra.csv.gz",
+    "punjab": "../instate/data/names_punjab.csv.gz"
+  },
+  "bihar_land": {
+    "accepted_links": "../land/data/eroll/confident_shekhpura.parquet",
+    "roll_records": "../land/data/eroll/roll_shekhpura.parquet"
+  },
+  "rajasthan_ration": {
+    "person_links": "../milaan_raj/data/links/persons",
+    "roll_households": "../milaan_raj/data/households/rolls",
+    "ration_households": "../milaan_raj/data/households/ration",
+    "age_offset_audit": "../milaan_raj/data/audit/03a_age_offset.csv",
+    "accepted_tiers": ["T1", "T2"]
+  }
+}

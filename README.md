@@ -186,6 +186,7 @@ The planned stages are:
 | `05_learn_edit_model` | Estimate source- and script-specific edit weights from linked pairs and negative controls | versioned edit-model artifact |
 | `06_cluster_variants` | Build conservative token-variant clusters using the edit model and linked evidence | variants Parquet |
 | `07_resolve_surnames` | Select the recorded surname from canonicalized candidates or abstain | recorded-surname results Parquet |
+| `07_resolve_linked_surnames` | Use alternate spacing to split a roll token only when the external final token is an exact suffix | linked recorded-surname results Parquet |
 | `08_resolve_family_surnames` | Add separately reported family surnames supported by relative, household, land, or ration evidence | family-surname results Parquet |
 | `09_evaluate` | Compare rules, measure coverage and error, and verify artifact and row-count contracts | evaluation report and manifest |
 
@@ -197,6 +198,10 @@ be reproduced without rerunning unrelated stages.
 
 These files will be created when their stages are implemented. The repository
 does not contain empty placeholder scripts.
+
+The aggregate candidate and recorded-surname stages are state-scoped
+(`--state`) so each very large state table runs in a fresh process and can be
+retried without invalidating completed state artifacts.
 
 ## Version 1 scope
 
@@ -227,5 +232,16 @@ text, provenance, uncertainty, and abstention state.
 
 ## Status
 
-The repository currently defines the product and evidence contract. No resolver
-has been implemented or released.
+The repository contains an unreleased baseline resolver and source-specific
+adapters for the locally available electoral-roll, Rajasthan ration-card, and
+Bihar land-record evidence. The baseline implements only the explicit rules in
+this document. Its scores are diagnostic quantities, not calibrated
+probabilities.
+
+The exact baseline rules and the assumptions they do and do not make are
+frozen in [the Version 1 assumptions](https://github.com/in-rolls/upnaam/blob/main/docs/assumptions.md).
+The first full four-state diagnostic is in
+[`data/audit/evaluation.csv`](https://github.com/in-rolls/upnaam/blob/main/data/audit/evaluation.csv).
+It shows that the
+final-token baseline is especially questionable for Maharashtra; no
+state-specific switch has been made without approval.

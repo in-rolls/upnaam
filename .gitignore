@@ -1,0 +1,14 @@
+.DS_Store
+.coverage
+.pytest_cache/
+.ruff_cache/
+.venv/
+__pycache__/
+build/
+data/audit/*.json
+data/audit/*.parquet
+data/derived/
+data/manifests/
+dist/
+docs/_build/
+htmlcov/
