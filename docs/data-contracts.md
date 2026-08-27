@@ -49,3 +49,23 @@ one unique raw name pair per accepted land account.
 - Family surnames require a named external evidence record.
 - Every stage writes its input paths, hashes, row counts, and configuration to
   a manifest.
+- Every recorded-surname row carries the immutable `resolver_revision` that
+  selected its state-position rule.
+- `surname_provenance` is `written_first_token` or `written_final_token` for a
+  positional selection and names an external source only for a documented
+  linked-record operation.
+
+## Resolver policy
+
+`config/resolver.json` is the source of truth for the resolver revision,
+supported states, and first-versus-final token position. The resolver never
+guesses a state policy from the name string. Unsupported states emit
+`abstained = true`, `abstention_reason = unsupported-state`, and null surname
+fields.
+
+The aggregate state output preserves one input row as one output row. Its
+`weight` remains `n_times`; it is not expanded into synthetic elector rows.
+
+The linked-record output standardizes source sex labels to `female`, `male`,
+or `unknown` solely for stratified diagnostics. The accepted-link artifact
+retains the source-specific value.

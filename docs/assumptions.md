@@ -1,7 +1,8 @@
 # Version 1 rules and assumptions
 
-This page freezes the rules used by the unreleased baseline. A rule change must
-change the resolver revision and rerun the evaluation.
+This page freezes `resolver-v1`. A rule change must change the resolver
+revision and rerun the evaluation. The machine-readable state policy is
+`config/resolver.json`.
 
 ## Recorded surname baseline
 
@@ -17,16 +18,15 @@ change the resolver revision and rerun the evaluation.
 5. A candidate token must contain at least two alphabetic characters.
    One-character initials and tokens with no letters remain in the raw record
    but are ineligible.
-6. If at least two eligible tokens remain, the final eligible token is the
-   baseline recorded surname. If one remains, abstain with
-   `single-token-name`. If none remains, abstain with `missing-name` or
-   `no-eligible-token`.
+6. If at least two eligible tokens remain, select the eligible token at the
+   state-configured position. If one remains, abstain with `single-token-name`.
+   If none remains, abstain with `missing-name` or `no-eligible-token`.
 7. `Devi`, `Kumari`, `Kaur`, `Begum`, `Khatun`, `Singh`, and `Kumar` are not
-   pretyped or excluded. If one is the final eligible token, the baseline
+   pretyped or excluded. If one occupies the configured position, the resolver
    selects it.
-8. The first eligible token remains a competing positional candidate. A token
-   appearing in a relative name is diagnostic support only; it does not replace
-   the written final-token baseline.
+8. The first and final eligible tokens remain competing positional candidates.
+   A token appearing in a relative name is diagnostic support only; it does not
+   override the configured position for an individual record.
 
 The four `instate` tables contain Roman-script aggregate name pairs, not
 elector-level records. Their `n_times` field weights every reported diagnostic.
@@ -34,15 +34,29 @@ They cannot support sex, household, or relation-type estimates.
 
 ## State position
 
-Upnaam does not assume one order for every state, but the unreleased resolver
-does not switch orders automatically. A state-specific rule requires a
-declared diagnostic threshold and approval before implementation.
+`resolver-v1` uses only these approved positional rules:
 
-The first full pass finds that Maharashtra's first candidate appears in the
-relative name much more often than its last candidate. This is evidence against
-the current final-token baseline for Maharashtra, not authorization to change
-the rule. Maharashtra results remain provisional pending a decision on a
-surname-first rule.
+| State | Selected position |
+| --- | --- |
+| Bihar | Final eligible token |
+| Rajasthan | Final eligible token |
+| Maharashtra | First eligible token |
+| Punjab | Final eligible token |
+
+An unsupported state abstains with `unsupported-state`. Upnaam does not infer
+name order automatically from an individual record.
+
+The Maharashtra rule was approved after a full pass over 65,876,912 aggregate
+name-pair rows representing 83,029,252 weighted records. The first candidate
+appears exactly in the relative name for 89.20% of weighted records, compared
+with 65.08% for the final candidate. Among records where first and final differ,
+27.19% of all weighted records match only on the first candidate and 3.07%
+match only on the final candidate.
+
+Those are exact normalized-token overlaps, not surname labels. For example,
+`jadhab asha ashok`/`jadhav ashok` registers as a final-only overlap because
+`jadhab` and `jadhav` are not equal. Positional selection never uses fuzzy
+matching; supported spelling canonicalization remains a separate stage.
 
 ## Linked records
 
@@ -77,5 +91,5 @@ surname-first rule.
 ## Not implemented in the baseline
 
 No household surname propagation, father-versus-husband transmission model,
-automatic state-order switch, English name parser, caste inference, or manual
-surname annotation is used.
+automatic state-order detection, English name parser, caste inference, or
+manual surname annotation is used.

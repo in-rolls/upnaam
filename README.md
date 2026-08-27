@@ -30,12 +30,12 @@ the first token, or another token when the evidence supports a different name
 order. It remains a recorded surname even when it is not transmitted within a
 family.
 
-For `Poorna Devi`, the ordinary last-token rule yields:
+For `Poorna Devi` in a state configured for the final token, the rule yields:
 
 ```text
 surname_raw = "Devi"
 surname = "devi"
-surname_provenance = "written"
+surname_provenance = "written_final_token"
 ```
 
 ### Family surname
@@ -106,9 +106,10 @@ Upnaam begins with weak, inspectable assumptions:
    surname.
 8. Upnaam abstains when the available evidence does not distinguish candidates.
 
-The first baseline is the final whitespace-separated token. Other rules must
-show that they improve surname resolution on independent evidence before they
-replace it for any state or source.
+`resolver-v1` selects the final eligible token in Bihar, Rajasthan, and Punjab,
+and the first eligible token in Maharashtra. These are explicit state rules,
+not an automatic name-order classifier. Unsupported states abstain. The
+machine-readable policy is `config/resolver.json`.
 
 ## Variant resolution
 
@@ -232,7 +233,7 @@ text, provenance, uncertainty, and abstention state.
 
 ## Status
 
-The repository contains an unreleased baseline resolver and source-specific
+The repository contains an unreleased `resolver-v1` and source-specific
 adapters for the locally available electoral-roll, Rajasthan ration-card, and
 Bihar land-record evidence. The baseline implements only the explicit rules in
 this document. Its scores are diagnostic quantities, not calibrated
@@ -242,6 +243,6 @@ The exact baseline rules and the assumptions they do and do not make are
 frozen in [the Version 1 assumptions](https://github.com/in-rolls/upnaam/blob/main/docs/assumptions.md).
 The first full four-state diagnostic is in
 [`data/audit/evaluation.csv`](https://github.com/in-rolls/upnaam/blob/main/data/audit/evaluation.csv).
-It shows that the
-final-token baseline is especially questionable for Maharashtra; no
-state-specific switch has been made without approval.
+It records the approved first-token rule for Maharashtra and final-token rules
+for Bihar, Rajasthan, and Punjab, along with exact relative-name overlap and
+linked-record diagnostics split by source, linkage tier, and sex.

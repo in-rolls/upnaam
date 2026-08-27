@@ -17,6 +17,8 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
     from pathlib import Path
 
+    from upnaam.policy import ResolverPolicy
+
 NAME_COLUMNS = ("english_name", "father_husband_name", "n_times")
 _PREFIX_PATTERN = re.compile(
     r"^(?:(?:श्री|श्रीमती|सुश्री|डॉ|shri|sri|srimati|smt|mr|mrs|ms|dr)\s+)+",
@@ -197,13 +199,17 @@ def resolve_recorded_surnames(
     source: Path,
     output: Path,
     *,
+    state: str,
+    policy: ResolverPolicy,
     variants: dict[str, str] | None = None,
 ) -> int:
-    """Resolve the approved final-token baseline with optional variants.
+    """Resolve recorded surnames under a versioned state-position policy.
 
     Args:
         source: Candidate table.
         output: Recorded-surname result table.
+        state: State identifier expected in every source row.
+        policy: Versioned state-position rules.
         variants: Evidence-backed normalized variant mappings.
 
     Returns:
@@ -211,11 +217,30 @@ def resolve_recorded_surnames(
     """
     variant_map = variants or {}
     parquet = pq.ParquetFile(source)
+    position = policy.position_for(state)
 
     def resolved_frames() -> Iterable[pd.DataFrame]:
         for batch in parquet.iter_batches(batch_size=100_000):
             frame = batch.to_pandas()
-            resolved = frame["baseline_surname"].map(
+            observed_states = set(frame["state"].dropna().astype(str))
+            if observed_states != {state}:
+                raise ValueError(
+                    f"candidate state mismatch: expected {state!r}, "
+                    f"observed {sorted(observed_states)!r}"
+                )
+            if position is None:
+                selected = pd.Series(pd.NA, index=frame.index, dtype="string")
+                selected_raw = selected.copy()
+                abstained = pd.Series(True, index=frame.index)
+                reason = pd.Series("unsupported-state", index=frame.index)
+            else:
+                selected = frame[f"{position}_candidate"].where(~frame["abstained"])
+                selected_raw = frame[f"{position}_candidate_raw"].where(
+                    ~frame["abstained"]
+                )
+                abstained = frame["abstained"]
+                reason = frame["abstention_reason"]
+            resolved = selected.map(
                 lambda value: (
                     variant_map.get(value, value) if isinstance(value, str) else None
                 )
@@ -229,17 +254,27 @@ def resolve_recorded_surnames(
                     "name_raw",
                     "relative_name_raw",
                     "weight",
-                    "abstained",
-                    "abstention_reason",
                 ],
             ].copy()
+            result["abstained"] = abstained
+            result["abstention_reason"] = reason
             result["surname"] = resolved
-            result["surname_raw"] = frame["baseline_surname_raw"]
-            result["surname_position"] = frame["baseline_position"]
-            result["surname_provenance"] = resolved.map(
-                lambda value: "written_final_token" if isinstance(value, str) else None
+            result["surname_raw"] = selected_raw
+            result["surname_position"] = position
+            result["surname_position"] = result["surname_position"].where(
+                ~result["abstained"]
             )
+            provenance_position = "final" if position == "last" else position
+            provenance = (
+                f"written_{provenance_position}_token"
+                if provenance_position is not None
+                else None
+            )
+            result["surname_provenance"] = pd.Series(
+                provenance, index=frame.index, dtype="string"
+            ).where(resolved.notna())
             result["surname_score"] = pd.Series([None] * len(result), dtype="Float64")
+            result["resolver_revision"] = policy.revision
             yield result
 
     return _write_frames(resolved_frames(), output)

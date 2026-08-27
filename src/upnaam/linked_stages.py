@@ -17,7 +17,21 @@ from upnaam.clustering import VariantEvidence, cluster_variants
 from upnaam.edit_model import summarize_edits
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
     from pathlib import Path
+
+    from upnaam.policy import SurnamePosition
+
+
+def _sex_group(value: object) -> str:
+    """Collapse source-specific sex labels for stratified diagnostics."""
+    if isinstance(value, str):
+        normalized = value.strip().casefold()
+        if normalized in {"f", "female"}:
+            return "female"
+        if normalized in {"m", "male"}:
+            return "male"
+    return "unknown"
 
 
 def align_link_table(source: Path, output: Path) -> int:
@@ -100,6 +114,7 @@ def resolve_linked_surnames(source: Path, output: Path) -> int:
             ("roll_id", pa.string()),
             ("roll_name_raw", pa.string()),
             ("external_name_raw", pa.string()),
+            ("sex", pa.string()),
             ("surname", pa.string()),
             ("surname_raw", pa.string()),
             ("surname_position", pa.string()),
@@ -146,6 +161,7 @@ def resolve_linked_surnames(source: Path, output: Path) -> int:
                         "roll_id": link.roll_id,
                         "roll_name_raw": link.roll_name_raw,
                         "external_name_raw": link.external_name_raw,
+                        "sex": _sex_group(link.sex),
                         "surname": None if surname is None else surname.normalized,
                         "surname_raw": None if surname is None else surname.raw,
                         "surname_position": None if surname is None else "last",
@@ -353,6 +369,8 @@ def evaluate_outputs(
     variants_path: Path,
     linked_resolved_path: Path,
     family_path: Path,
+    *,
+    state_positions: Mapping[str, SurnamePosition],
 ) -> pd.DataFrame:
     """Compute weighted state and accepted-link diagnostics.
 
@@ -363,6 +381,7 @@ def evaluate_outputs(
         variants_path: Variant mapping artifact.
         linked_resolved_path: Recorded surnames for accepted person links.
         family_path: Family-surname evidence artifact.
+        state_positions: Approved surname-token position by state.
 
     Returns:
         Long-form metric table.
@@ -379,12 +398,17 @@ def evaluate_outputs(
         single_weight = 0
         first_relative_weight = 0
         last_relative_weight = 0
+        selected_relative_weight = 0
+        disagreement_weight = 0
+        overlap_weights: Counter[str] = Counter()
         for batch in parquet.iter_batches(
             columns=[
                 "state",
                 "weight",
                 "abstained",
                 "abstention_reason",
+                "first_candidate",
+                "last_candidate",
                 "first_in_relative",
                 "last_in_relative",
             ]
@@ -399,38 +423,69 @@ def evaluate_outputs(
             )
             first_relative_weight += int(weight[frame["first_in_relative"]].sum())
             last_relative_weight += int(weight[frame["last_in_relative"]].sum())
+            position = state_positions.get(state)
+            if position is None:
+                raise ValueError(f"candidate state has no resolver policy: {state}")
+            selected_relative_weight += int(
+                weight[frame[f"{position}_in_relative"]].sum()
+            )
+            distinct = ~frame["abstained"] & frame["first_candidate"].ne(
+                frame["last_candidate"]
+            ).fillna(False)
+            disagreement_weight += int(weight[distinct].sum())
+            first_in = frame["first_in_relative"]
+            last_in = frame["last_in_relative"]
+            overlap_masks = {
+                "first_only": distinct & first_in & ~last_in,
+                "last_only": distinct & ~first_in & last_in,
+                "both": distinct & first_in & last_in,
+                "neither": distinct & ~first_in & ~last_in,
+            }
+            for category, mask in overlap_masks.items():
+                overlap_weights[category] += int(weight[mask].sum())
         if state is None or denominator == 0:
             raise ValueError(f"candidate artifact is empty: {path}")
         metrics = {
             "weighted_records": denominator,
-            "baseline_coverage": resolved_weight / denominator,
+            "recorded_surname_coverage": resolved_weight / denominator,
             "single_token_share": single_weight / denominator,
             "first_in_relative_share": first_relative_weight / denominator,
             "last_in_relative_share": last_relative_weight / denominator,
+            "selected_in_relative_share": selected_relative_weight / denominator,
+            "first_last_disagreement_share": disagreement_weight / denominator,
+            **{
+                f"exact_relative_overlap_{category}_share": value / denominator
+                for category, value in overlap_weights.items()
+            },
         }
         rows.extend(
             {"scope": state, "metric": metric, "value": value}
             for metric, value in metrics.items()
         )
-    link_counts: Counter[tuple[str, str]] = Counter()
-    exact_counts: Counter[tuple[str, str]] = Counter()
+    link_counts: Counter[tuple[str, str, str]] = Counter()
+    exact_counts: Counter[tuple[str, str, str]] = Counter()
     links_parquet = pq.ParquetFile(links_path)
     for batch in links_parquet.iter_batches(
-        columns=["source", "link_tier", "name_exact_upstream"]
+        columns=["source", "link_tier", "sex", "name_exact_upstream"]
     ):
         for link in batch.to_pandas().itertuples(index=False):
-            key = (str(link.source), str(link.link_tier))
-            link_counts[key] += 1
-            exact_counts[key] += int(link.name_exact_upstream)
-    for (source_name, tier), count in sorted(link_counts.items()):
-        scope = f"{source_name}:{tier}"
+            source_name = str(link.source)
+            tier = str(link.link_tier)
+            sex = _sex_group(link.sex)
+            for group in ("all", sex):
+                key = (source_name, tier, group)
+                link_counts[key] += 1
+                exact_counts[key] += int(link.name_exact_upstream)
+    for (source_name, tier, sex), count in sorted(link_counts.items()):
+        base_scope = f"{source_name}:{tier}"
+        scope = base_scope if sex == "all" else f"{base_scope}:sex={sex}"
         rows.extend(
             [
                 {"scope": scope, "metric": "accepted_links", "value": count},
                 {
                     "scope": scope,
                     "metric": "upstream_exact_name_share",
-                    "value": exact_counts[(source_name, tier)] / count,
+                    "value": exact_counts[(source_name, tier, sex)] / count,
                 },
             ]
         )
@@ -442,29 +497,34 @@ def evaluate_outputs(
         rows.append(
             {"scope": "all_links", "metric": f"alignment_{operation}", "value": count}
         )
-    resolution_counts: Counter[tuple[str, str, str]] = Counter()
-    resolution_totals: Counter[tuple[str, str]] = Counter()
+    resolution_counts: Counter[tuple[str, str, str, str]] = Counter()
+    resolution_totals: Counter[tuple[str, str, str]] = Counter()
     resolved_parquet = pq.ParquetFile(linked_resolved_path)
     for batch in resolved_parquet.iter_batches(
-        columns=["source", "link_tier", "surname_provenance", "abstained"]
+        columns=["source", "link_tier", "sex", "surname_provenance", "abstained"]
     ):
         for result in batch.to_pandas().itertuples(index=False):
-            key = (str(result.source), str(result.link_tier))
-            resolution_totals[key] += 1
+            source_name = str(result.source)
+            tier = str(result.link_tier)
+            sex = _sex_group(result.sex)
             if result.abstained:
                 category = "abstained"
             elif str(result.surname_provenance).endswith("_segmentation"):
                 category = "segmented"
             else:
                 category = "written"
-            resolution_counts[(*key, category)] += 1
-    for (source_name, tier), total in sorted(resolution_totals.items()):
-        scope = f"{source_name}:{tier}"
+            for group in ("all", sex):
+                key = (source_name, tier, group)
+                resolution_totals[key] += 1
+                resolution_counts[(*key, category)] += 1
+    for (source_name, tier, sex), total in sorted(resolution_totals.items()):
+        base_scope = f"{source_name}:{tier}"
+        scope = base_scope if sex == "all" else f"{base_scope}:sex={sex}"
         rows.extend(
             {
                 "scope": scope,
                 "metric": f"linked_resolution_{category}_share",
-                "value": resolution_counts[(source_name, tier, category)] / total,
+                "value": resolution_counts[(source_name, tier, sex, category)] / total,
             }
             for category in ("written", "segmented", "abstained")
         )

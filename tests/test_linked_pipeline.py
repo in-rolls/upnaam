@@ -37,7 +37,7 @@ def _write_links(path: Path) -> None:
             "roll_relative_raw": ["Ram", "Ram", "Mohan", "Hari Rai"],
             "external_relative_raw": ["Ram", "Ram", "Mohan", "Hari Rai"],
             "relation_type": ["father"] * 4,
-            "sex": ["f", "f", "f", "m"],
+            "sex": ["f", "f", "f", None],
             "name_exact_upstream": [False, False, False, True],
             "edit_learning_eligible": [True, True, False, False],
             "omission_eligible": [False, False, False, False],
@@ -62,6 +62,7 @@ def test_linked_stages(tmp_path: Path) -> None:
     assert set(mapping["variant"]) == {"poorna", "porna"}
     assert resolve_linked_surnames(links, resolved) == 4
     linked = pd.read_parquet(resolved)
+    assert set(linked["sex"]) == {"female", "unknown"}
     segmentation = linked.loc[linked["roll_id"] == "v3"].iloc[0]
     assert segmentation["surname"] == "sharma"
     assert segmentation["surname_provenance"] == "ration_card_segmentation"
@@ -76,6 +77,8 @@ def test_evaluation_report(tmp_path: Path) -> None:
             "weight": [2, 3],
             "abstained": [False, True],
             "abstention_reason": [None, "single-token-name"],
+            "first_candidate": ["poorna", "kamla"],
+            "last_candidate": ["devi", "kamla"],
             "first_in_relative": [False, True],
             "last_in_relative": [True, False],
         }
@@ -91,13 +94,32 @@ def test_evaluation_report(tmp_path: Path) -> None:
     resolve_linked_surnames(links, resolved)
     resolve_family_surnames(links, family)
     report = evaluate_outputs(
-        [candidate], links, alignments, variants, resolved, family
+        [candidate],
+        links,
+        alignments,
+        variants,
+        resolved,
+        family,
+        state_positions={"bihar": "last"},
     )
     coverage = report.loc[
-        (report["scope"] == "bihar") & (report["metric"] == "baseline_coverage"),
+        (report["scope"] == "bihar")
+        & (report["metric"] == "recorded_surname_coverage"),
         "value",
     ].iloc[0]
     assert coverage == 0.4
+    selected_overlap = report.loc[
+        (report["scope"] == "bihar")
+        & (report["metric"] == "selected_in_relative_share"),
+        "value",
+    ].iloc[0]
+    assert selected_overlap == 0.4
+    female_t2_links = report.loc[
+        (report["scope"] == "rajasthan_ration:T2:sex=female")
+        & (report["metric"] == "accepted_links"),
+        "value",
+    ].iloc[0]
+    assert female_t2_links == 2
     assert pq.ParquetFile(family).metadata.num_rows == 0
 
 

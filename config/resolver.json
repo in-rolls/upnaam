@@ -1,0 +1,10 @@
+{
+  "revision": "resolver-v1",
+  "state_positions": {
+    "bihar": "last",
+    "maharashtra": "first",
+    "punjab": "last",
+    "rajasthan": "last"
+  },
+  "unsupported_state": "abstain"
+}

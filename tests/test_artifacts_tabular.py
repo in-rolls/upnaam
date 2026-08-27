@@ -13,6 +13,7 @@ from upnaam.artifacts import (
     write_manifest,
 )
 from upnaam.parquet import combine_parquet_files
+from upnaam.policy import ResolverPolicy
 from upnaam.tabular import (
     extract_candidate_table,
     load_variant_map,
@@ -64,15 +65,69 @@ def test_tabular_baseline_pipeline(tmp_path: Path) -> None:
     _write_name_csv(source)
     assert normalize_electoral_name_table(source, normalized, state="bihar") == 2
     assert extract_candidate_table(normalized, candidates) == 2
+    policy = ResolverPolicy(
+        revision="test-v1",
+        state_positions={"bihar": "last"},
+        unsupported_state="abstain",
+    )
     assert (
-        resolve_recorded_surnames(candidates, resolved, variants={"devi": "devī"}) == 2
+        resolve_recorded_surnames(
+            candidates,
+            resolved,
+            state="bihar",
+            policy=policy,
+            variants={"devi": "devī"},
+        )
+        == 2
     )
     frame = pd.read_parquet(resolved)
     assert frame.loc[0, "surname_raw"] == "Devi"
     assert frame.loc[0, "surname"] == "devī"
     assert frame.loc[0, "surname_provenance"] == "written_final_token"
+    assert frame.loc[0, "resolver_revision"] == "test-v1"
     assert frame.loc[1, "abstention_reason"] == "single-token-name"
     assert pd.isna(frame.loc[1, "surname"])
+
+
+def test_tabular_pipeline_uses_first_token_policy(tmp_path: Path) -> None:
+    source = tmp_path / "names.csv.gz"
+    normalized = tmp_path / "normalized.parquet"
+    candidates = tmp_path / "candidates.parquet"
+    resolved = tmp_path / "resolved.parquet"
+    _write_name_csv(source)
+    normalize_electoral_name_table(source, normalized, state="maharashtra")
+    extract_candidate_table(normalized, candidates)
+    policy = ResolverPolicy(
+        revision="test-v1",
+        state_positions={"maharashtra": "first"},
+        unsupported_state="abstain",
+    )
+    resolve_recorded_surnames(candidates, resolved, state="maharashtra", policy=policy)
+    frame = pd.read_parquet(resolved)
+    assert frame.loc[0, "surname"] == "poorna"
+    assert frame.loc[0, "surname_raw"] == "Poorna"
+    assert frame.loc[0, "surname_position"] == "first"
+    assert frame.loc[0, "surname_provenance"] == "written_first_token"
+
+
+def test_tabular_pipeline_abstains_for_unsupported_state(tmp_path: Path) -> None:
+    source = tmp_path / "names.csv.gz"
+    normalized = tmp_path / "normalized.parquet"
+    candidates = tmp_path / "candidates.parquet"
+    resolved = tmp_path / "resolved.parquet"
+    _write_name_csv(source)
+    normalize_electoral_name_table(source, normalized, state="goa")
+    extract_candidate_table(normalized, candidates)
+    policy = ResolverPolicy(
+        revision="test-v1",
+        state_positions={"maharashtra": "first"},
+        unsupported_state="abstain",
+    )
+    resolve_recorded_surnames(candidates, resolved, state="goa", policy=policy)
+    frame = pd.read_parquet(resolved)
+    assert frame["abstained"].all()
+    assert set(frame["abstention_reason"]) == {"unsupported-state"}
+    assert frame["surname"].isna().all()
 
 
 def test_variant_loaders_and_parquet_combination(tmp_path: Path) -> None:
