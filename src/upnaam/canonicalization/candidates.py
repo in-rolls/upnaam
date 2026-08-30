@@ -13,6 +13,8 @@ from rapidfuzz.distance import Levenshtein
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
+VARIANT_CANDIDATE_REVISION = "variant-candidates-v1"
+
 
 @dataclass(frozen=True, slots=True)
 class VariantCandidate:
@@ -24,6 +26,8 @@ class VariantCandidate:
     similarity: float
     left_frequency: int
     right_frequency: int
+    candidate_reason: str = "edit_distance_gate"
+    candidate_revision: str = VARIANT_CANDIDATE_REVISION
 
 
 def _deletion_signatures(token: str, max_distance: int) -> set[str]:

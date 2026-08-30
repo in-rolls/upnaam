@@ -158,6 +158,8 @@ upnaam aggregate-bihar-ration bihar_ration_surname_counts.parquet \
   --part ration_cards.sqlite.gz.001 --part ration_cards.sqlite.gz.002 \
   --index ration_cards.sqlite.gzidx --audit bihar_ration_counts_audit.json
 upnaam evidence-rajasthan accepted_links.parquet rajasthan_evidence.parquet
+upnaam reconcile propose bihar_ration_surname_counts.parquet \
+  bihar_ration_variant_candidates.parquet --audit bihar_variant_candidates.json
 upnaam reconcile rank rajasthan_evidence.parquet candidates.parquet
 upnaam reconcile decide candidates.parquet decisions.parquet --audit audit.json
 upnaam reconcile apply resolved.parquet canonical.parquet decisions.parquet

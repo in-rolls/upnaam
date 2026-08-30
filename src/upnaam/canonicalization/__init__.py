@@ -2,6 +2,7 @@
 
 from upnaam.canonicalization.alignment import TokenAlignment, align_names
 from upnaam.canonicalization.candidates import (
+    VARIANT_CANDIDATE_REVISION,
     VariantCandidate,
     generate_variant_candidates,
 )
@@ -27,6 +28,7 @@ from upnaam.canonicalization.reconciliation import (
 
 __all__ = [
     "RECONCILIATION_REVISION",
+    "VARIANT_CANDIDATE_REVISION",
     "AnchorEvidence",
     "AppliedDecision",
     "CharacterEdit",

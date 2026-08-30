@@ -95,6 +95,66 @@ def test_cli_reconciliation_rank_decide_and_apply(tmp_path: Path) -> None:
     assert json.loads(audit.read_text())["accepted_variant"] == 1
 
 
+def test_cli_proposes_variant_candidates_without_mapping(tmp_path: Path) -> None:
+    frequencies = tmp_path / "frequencies.parquet"
+    candidates = tmp_path / "candidates.parquet"
+    audit = tmp_path / "candidates.json"
+    manifest = tmp_path / "manifest.json"
+    pd.DataFrame(
+        {
+            "surname_source_normalized": ["jadhab", "jadhav", "sharma", "noise"],
+            "member_count": [12, 100, 50, 1],
+        }
+    ).to_parquet(frequencies, index=False)
+
+    main(
+        [
+            "reconcile",
+            "propose",
+            str(frequencies),
+            str(candidates),
+            "--audit",
+            str(audit),
+            "--manifest",
+            str(manifest),
+        ]
+    )
+
+    result = pd.read_parquet(candidates)
+    assert result[["left", "right"]].to_dict(orient="records") == [
+        {"left": "jadhab", "right": "jadhav"}
+    ]
+    assert result.loc[0, "candidate_reason"] == "edit_distance_gate"
+    assert json.loads(audit.read_text())["eligible_forms"] == 3
+    assert json.loads(manifest.read_text())["stage"] == "variant_candidate_proposals"
+
+
+def test_cli_writes_typed_empty_variant_candidates(tmp_path: Path) -> None:
+    frequencies = tmp_path / "frequencies.parquet"
+    candidates = tmp_path / "candidates.parquet"
+    pd.DataFrame(
+        {
+            "surname_source_normalized": ["sharma"],
+            "member_count": [100],
+        }
+    ).to_parquet(frequencies, index=False)
+
+    main(["reconcile", "propose", str(frequencies), str(candidates)])
+
+    result = pd.read_parquet(candidates)
+    assert result.empty
+    assert result.dtypes.astype(str).to_dict() == {
+        "left": "string",
+        "right": "string",
+        "distance": "int64",
+        "similarity": "float64",
+        "left_frequency": "int64",
+        "right_frequency": "int64",
+        "candidate_reason": "string",
+        "candidate_revision": "string",
+    }
+
+
 def test_cli_empty_reconciliation_artifacts_keep_their_schema(tmp_path: Path) -> None:
     evidence = tmp_path / "evidence.parquet"
     candidates = tmp_path / "candidates.parquet"

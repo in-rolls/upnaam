@@ -8,6 +8,8 @@ All notable changes to Upnaam will be documented here.
   archives without materializing the decompressed database.
 - Add streaming member and household counts by normalized written-final token
   over Bihar ration-card rosters.
+- Add a generic edit-neighbor proposal command that records frequency and
+  thresholds but cannot create canonical mappings.
 - Define the recorded-surname and family-surname evidence contracts.
 - Add deterministic normalization and explicit surname candidate rules.
 - Reuse accepted Bihar land and Rajasthan ration-card links.

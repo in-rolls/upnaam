@@ -4,6 +4,33 @@ Upnaam canonicalizes a selected and normalized surname token. It does not
 decide which token is the surname in this stage, and it does not infer whether
 the selected token is a hereditary family name.
 
+## Candidate proposals
+
+`reconcile propose` turns a frequency table into a compact set of spelling
+pairs worth examining. The default gates retain forms observed at least 10
+times and pairs with Levenshtein distance at most 1 and normalized similarity
+at least 0.80:
+
+```console
+upnaam reconcile propose surname_counts.parquet candidates.parquet \
+  --audit candidates.json --manifest candidates.manifest.json
+```
+
+Every output row is marked `edit_distance_gate` and records both form
+frequencies and the proposal-rule revision. The output contains no canonical
+label, mapping, or cluster identifier. Frequency filters noise and describes
+the pair; it does not make the more frequent form canonical. A later evidence
+stage must either direct a form to a named anchor or leave it unresolved.
+
+On the Bihar ration-card written-final-token table, the defaults retain 28,854
+of 310,949 normalized forms and propose 54,181 pairs. These are deliberately
+not automatic merges. For example, `कुमार` and `कुमारी` are one edit apart but
+are substantively different tokens, while `देवी` and `देवी.` are a plausible
+punctuation variant. String distance alone cannot distinguish those cases.
+Only 21,590 retained forms have any proposed neighbor, and 17,107 of those have
+more than one; `कुमारी` alone has 222. Upnaam therefore preserves the pairwise
+proposal graph and does not turn its connected components into clusters.
+
 ## Why this is not clustering
 
 A global cluster is a partition: every spelling belongs to exactly one group,

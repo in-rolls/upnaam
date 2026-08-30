@@ -6,6 +6,7 @@ import argparse
 import json
 from collections import Counter
 from dataclasses import asdict
+from numbers import Integral
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
@@ -37,10 +38,12 @@ from upnaam.adapters.rajasthan_reference import (
 )
 from upnaam.artifacts import write_manifest
 from upnaam.canonicalization import (
+    VARIANT_CANDIDATE_REVISION,
     AnchorEvidence,
     RankedAnchorCandidate,
     apply_reconciliation,
     decide_anchor_candidates,
+    generate_variant_candidates,
     rank_anchor_candidates,
     reconciliation_index_from_frame,
 )
@@ -306,6 +309,101 @@ def _reconcile_rank(args: argparse.Namespace) -> None:
     write_table(pd.DataFrame(rows, columns=pd.Index(columns)), args.output)
 
 
+def _reconcile_propose(args: argparse.Namespace) -> None:
+    frame = read_table(args.input)
+    tokens = _require_column(frame, args.token_column)
+    frequencies = _require_column(frame, args.frequency_column)
+    if args.min_frequency < 1:
+        raise ValueError("min_frequency must be at least one")
+    values: list[tuple[str, int]] = []
+    for token, frequency in zip(tokens, frequencies, strict=True):
+        if not isinstance(token, str) or not token:
+            raise ValueError("candidate tokens must be nonempty strings")
+        if not isinstance(frequency, Integral) or isinstance(frequency, bool):
+            raise ValueError("candidate frequencies must be integers")
+        if frequency >= args.min_frequency:
+            values.append((token, int(frequency)))
+    candidates = generate_variant_candidates(
+        values,
+        max_distance=args.max_distance,
+        min_similarity=args.min_similarity,
+    )
+    columns = [
+        "left",
+        "right",
+        "distance",
+        "similarity",
+        "left_frequency",
+        "right_frequency",
+        "candidate_reason",
+        "candidate_revision",
+    ]
+    output = pd.DataFrame(
+        [asdict(candidate) for candidate in candidates],
+        columns=pd.Index(columns),
+    ).astype(
+        {
+            "left": "string",
+            "right": "string",
+            "distance": "int64",
+            "similarity": "float64",
+            "left_frequency": "int64",
+            "right_frequency": "int64",
+            "candidate_reason": "string",
+            "candidate_revision": "string",
+        }
+    )
+    write_table(output, args.output)
+    forms = {token for token, _ in values}
+    if args.audit:
+        forms_with_candidates = {
+            value
+            for candidate in candidates
+            for value in (candidate.left, candidate.right)
+        }
+        report = {
+            "candidate_pairs": len(candidates),
+            "candidate_revision": VARIANT_CANDIDATE_REVISION,
+            "eligible_forms": len(forms),
+            "forms_with_candidates": len(forms_with_candidates),
+            "frequency_column": args.frequency_column,
+            "input_rows": len(frame),
+            "max_distance": args.max_distance,
+            "min_frequency": args.min_frequency,
+            "min_similarity": args.min_similarity,
+            "token_column": args.token_column,
+        }
+        args.audit.parent.mkdir(parents=True, exist_ok=True)
+        temporary = args.audit.with_suffix(f"{args.audit.suffix}.tmp")
+        with temporary.open("w", encoding="utf-8") as stream:
+            json.dump(report, stream, indent=2, sort_keys=True)
+            stream.write("\n")
+        temporary.replace(args.audit)
+    if args.manifest:
+        outputs = [args.output]
+        if args.audit is not None:
+            outputs.append(args.audit)
+        write_manifest(
+            args.manifest,
+            stage="variant_candidate_proposals",
+            inputs=[args.input],
+            outputs=outputs,
+            row_counts={
+                "input_rows": len(frame),
+                "eligible_forms": len(forms),
+                "candidate_pairs": len(candidates),
+            },
+            parameters={
+                "candidate_revision": VARIANT_CANDIDATE_REVISION,
+                "frequency_column": args.frequency_column,
+                "max_distance": args.max_distance,
+                "min_frequency": args.min_frequency,
+                "min_similarity": args.min_similarity,
+                "token_column": args.token_column,
+            },
+        )
+
+
 def _parse_bool(value: object) -> bool:
     if value is True or value is False:
         return bool(value)
@@ -521,6 +619,19 @@ def build_parser() -> argparse.ArgumentParser:
 
     reconcile = commands.add_parser("reconcile", help="reconcile surname spellings")
     reconcile_commands = reconcile.add_subparsers(dest="operation", required=True)
+    propose = _table_command(
+        reconcile_commands,
+        "propose",
+        "propose edit-distance neighbors without merging",
+        _reconcile_propose,
+    )
+    propose.add_argument("--token-column", default="surname_source_normalized")
+    propose.add_argument("--frequency-column", default="member_count")
+    propose.add_argument("--min-frequency", type=int, default=10)
+    propose.add_argument("--max-distance", type=int, default=1)
+    propose.add_argument("--min-similarity", type=float, default=0.8)
+    propose.add_argument("--audit", type=_path)
+    propose.add_argument("--manifest", type=_path)
     rank = _table_command(
         reconcile_commands,
         "rank",

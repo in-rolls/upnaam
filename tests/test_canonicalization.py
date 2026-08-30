@@ -4,6 +4,7 @@ import pandas as pd
 import pytest
 
 from upnaam.canonicalization import (
+    VARIANT_CANDIDATE_REVISION,
     AnchorEvidence,
     AppliedDecision,
     ReconciliationStatus,
@@ -40,6 +41,8 @@ def test_similarity_generates_candidates_without_declaring_a_mapping() -> None:
         {"jadhab": 12, "jadhav": 100, "sharma": 50}
     )
     assert [(item.left, item.right) for item in candidates] == [("jadhab", "jadhav")]
+    assert candidates[0].candidate_reason == "edit_distance_gate"
+    assert candidates[0].candidate_revision == VARIANT_CANDIDATE_REVISION
 
 
 def test_candidate_blocking_does_not_drop_short_tokens() -> None:
