@@ -8,6 +8,7 @@ import pytest
 from upnaam.adapters.bihar_land_inference import (
     BIHAR_LAND_INFERENCE_REVISION,
     BIHAR_LAND_INFERRED_SCHEMA,
+    BIHAR_LAND_RECORD_CONNECTORS,
     BIHAR_LAND_RECORD_SUFFIXES,
     infer_bihar_land_surname_counts,
 )
@@ -21,9 +22,11 @@ def _names() -> pd.DataFrame:
                 [
                     "किशोर यादव",
                     "मोहन यादव वगैरह",
-                    "गीता सिंह अन्य",
-                    "राम वगै0",
+                    "गीता सिंह एवं अन्य",
+                    "राम वगै0 वगै0",
+                    "मोसदी एव अन्य",
                     "सीमा वगैराह",
+                    "वगैरह वगैरह",
                     "मोहन",
                     None,
                 ],
@@ -53,6 +56,7 @@ def test_bihar_land_inference_uses_only_exact_record_suffixes(
         )
         == BIHAR_LAND_RECORD_SUFFIXES
     )
+    assert frozenset({"एव", "एवं"}) == BIHAR_LAND_RECORD_CONNECTORS
     source = tmp_path / "names.parquet"
     output = tmp_path / "inferred.parquet"
     _names().to_parquet(source, index=False)
@@ -62,14 +66,18 @@ def test_bihar_land_inference_uses_only_exact_record_suffixes(
 
     assert result.loc["यादव", "distinct_full_name_count"] == 2
     assert result.loc["यादव", "written_final_token_count"] == 1
-    assert result.loc["यादव", "record_suffix_adjusted_count"] == 1
-    assert result.loc["सिंह", "record_suffix_adjusted_count"] == 1
-    assert result.loc["राम", "record_suffix_adjusted_count"] == 1
+    assert result.loc["यादव", "record_suffix_previous_token_count"] == 1
+    assert result.loc["सिंह", "record_suffix_chain_token_count"] == 1
+    assert result.loc["राम", "record_suffix_chain_token_count"] == 1
+    assert result.loc["मोसदी", "record_suffix_chain_token_count"] == 1
     assert result.loc["वगैराह", "written_final_token_count"] == 1
-    assert report.record_suffix_adjusted_names == 3
-    assert report.adjustments_by_suffix == {"अन्य": 1, "वगै0": 1, "वगैरह": 1}
+    assert report.record_suffix_adjusted_names == 4
+    assert report.record_suffix_chain_adjusted_names == 3
+    assert report.matched_by_suffix == {"अन्य": 2, "वगै0": 1, "वगैरह": 2}
+    assert report.skipped_chain_tokens == {"एव": 1, "एवं": 1, "वगै0": 1}
     assert report.abstentions_by_reason == {
         "missing-name": 1,
+        "record-suffix-without-preceding-name-token": 1,
         "single-token-name": 1,
     }
     assert pq.ParquetFile(output).schema_arrow == BIHAR_LAND_INFERRED_SCHEMA
@@ -97,10 +105,11 @@ def test_bihar_land_inference_cli_writes_audit_and_manifest(tmp_path: Path) -> N
         ]
     )
 
-    assert json.loads(audit.read_text())["record_suffix_adjusted_names"] == 3
+    assert json.loads(audit.read_text())["record_suffix_adjusted_names"] == 4
     payload = json.loads(manifest.read_text())
     assert payload["stage"] == "bihar_land_inferred_surname_counts"
     assert payload["parameters"]["record_suffix_matching"] == ("exact_normalized_token")
+    assert payload["parameters"]["record_connectors"] == ["एव", "एवं"]
     assert set(payload["parameters"]["record_suffixes"]) == (BIHAR_LAND_RECORD_SUFFIXES)
 
 

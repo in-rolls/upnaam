@@ -130,10 +130,12 @@ diagnostics. It is not the canonicalization method or public package API.
 The Bihar land written-token vocabulary applies the same literal final-token
 rule to one row per distinct official ryot full-name string. It is descriptive,
 not a canonical mapping. A separate inferred vocabulary applies the approved
-`bihar-land-record-suffix-inference-v1` rule: after an exact match to one of 10
-declared terminal administrative notations, it selects exactly the preceding
-eligible token. It does not fuzzy-match, recurse, or add another blacklist.
-Direct-written and suffix-adjusted support remain separate count columns.
+`bihar-land-record-suffix-inference-v2` rule: after an exact match to one of 10
+declared terminal administrative notations, it scans left across exact `एव` or
+`एवं` connectors and repeated approved suffixes, then selects the first
+preceding eligible token. It does not fuzzy-match or add another blacklist.
+Direct-written, previous-token, and chain-token support remain separate count
+columns.
 
 ## Not implemented in the baseline
 

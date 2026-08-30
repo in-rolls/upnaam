@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
-BIHAR_LAND_INFERENCE_REVISION = "bihar-land-record-suffix-inference-v1"
+BIHAR_LAND_INFERENCE_REVISION = "bihar-land-record-suffix-inference-v2"
 BIHAR_LAND_RECORD_SUFFIXES = frozenset(
     {
         "अन्य",
@@ -34,6 +34,7 @@ BIHAR_LAND_RECORD_SUFFIXES = frozenset(
         "वैगरह",
     }
 )
+BIHAR_LAND_RECORD_CONNECTORS = frozenset({"एव", "एवं"})
 BIHAR_LAND_INFERENCE_SOURCE = "bihar_land_distinct_official_name_vocabulary"
 
 BIHAR_LAND_INFERRED_SCHEMA = pa.schema(
@@ -44,7 +45,8 @@ BIHAR_LAND_INFERRED_SCHEMA = pa.schema(
         ("raw_variant_count", pa.int64()),
         ("distinct_full_name_count", pa.int64()),
         ("written_final_token_count", pa.int64()),
-        ("record_suffix_adjusted_count", pa.int64()),
+        ("record_suffix_previous_token_count", pa.int64()),
+        ("record_suffix_chain_token_count", pa.int64()),
         ("inference_source", pa.string()),
         ("normalization_revision", pa.string()),
         ("inference_revision", pa.string()),
@@ -64,7 +66,9 @@ class BiharLandInferenceReport:
     distinct_inferred_surnames: int
     written_final_token_names: int
     record_suffix_adjusted_names: int
-    adjustments_by_suffix: dict[str, int]
+    record_suffix_chain_adjusted_names: int
+    matched_by_suffix: dict[str, int]
+    skipped_chain_tokens: dict[str, int]
     abstentions_by_reason: dict[str, int]
 
 
@@ -97,9 +101,11 @@ def infer_bihar_land_surname_counts(
         BaseException: After removing an incomplete temporary output.
 
     Notes:
-        Only an exact normalized match to ``BIHAR_LAND_RECORD_SUFFIXES`` moves
-        selection to the preceding eligible token. There is no fuzzy suffix
-        recognition. Counts represent distinct written full-name strings.
+        Only an exact normalized match to ``BIHAR_LAND_RECORD_SUFFIXES`` starts
+        adjustment. The scan moves left across exact record connectors and
+        repeated suffix tokens, then selects the first preceding eligible
+        token. There is no fuzzy recognition. Counts represent distinct
+        written full-name strings.
     """
     if batch_size < 1:
         raise ValueError("batch_size must be at least one")
@@ -123,8 +129,10 @@ def infer_bihar_land_surname_counts(
     surname_counts: Counter[str] = Counter()
     raw_counts: defaultdict[str, Counter[str]] = defaultdict(Counter)
     written_counts: Counter[str] = Counter()
-    adjusted_counts: Counter[str] = Counter()
+    previous_token_counts: Counter[str] = Counter()
+    chain_token_counts: Counter[str] = Counter()
     suffix_counts: Counter[str] = Counter()
+    skipped_chain_tokens: Counter[str] = Counter()
     abstentions: Counter[str] = Counter()
     for batch in table.to_batches(max_chunksize=batch_size):
         for name in batch.column(0).to_pylist():
@@ -134,9 +142,26 @@ def infer_bihar_land_surname_counts(
                 continue
             written = selected.surname
             if written.normalized in BIHAR_LAND_RECORD_SUFFIXES:
-                inferred = selected.eligible_tokens[-2]
-                adjusted_counts[inferred.normalized] += 1
                 suffix_counts[written.normalized] += 1
+                preceding_index = len(selected.eligible_tokens) - 2
+                skipped: list[str] = []
+                while preceding_index >= 0:
+                    preceding = selected.eligible_tokens[preceding_index]
+                    if preceding.normalized not in (
+                        BIHAR_LAND_RECORD_CONNECTORS | BIHAR_LAND_RECORD_SUFFIXES
+                    ):
+                        break
+                    skipped.append(preceding.normalized)
+                    preceding_index -= 1
+                if preceding_index < 0:
+                    abstentions["record-suffix-without-preceding-name-token"] += 1
+                    continue
+                inferred = selected.eligible_tokens[preceding_index]
+                if skipped:
+                    chain_token_counts[inferred.normalized] += 1
+                    skipped_chain_tokens.update(skipped)
+                else:
+                    previous_token_counts[inferred.normalized] += 1
             else:
                 inferred = written
                 written_counts[inferred.normalized] += 1
@@ -154,7 +179,8 @@ def infer_bihar_land_surname_counts(
                 "raw_variant_count": len(raw_counts[normalized]),
                 "distinct_full_name_count": count,
                 "written_final_token_count": written_counts[normalized],
-                "record_suffix_adjusted_count": adjusted_counts[normalized],
+                "record_suffix_previous_token_count": previous_token_counts[normalized],
+                "record_suffix_chain_token_count": chain_token_counts[normalized],
                 "inference_source": BIHAR_LAND_INFERENCE_SOURCE,
                 "normalization_revision": NORMALIZATION_REVISION,
                 "inference_revision": BIHAR_LAND_INFERENCE_REVISION,
@@ -180,7 +206,10 @@ def infer_bihar_land_surname_counts(
         temporary.unlink(missing_ok=True)
         raise
 
-    adjusted_names = sum(suffix_counts.values())
+    adjusted_names = sum(previous_token_counts.values()) + sum(
+        chain_token_counts.values()
+    )
+    chain_adjusted_names = sum(chain_token_counts.values())
     inferred_names = sum(surname_counts.values())
     return BiharLandInferenceReport(
         source_rows=source_rows,
@@ -191,7 +220,9 @@ def infer_bihar_land_surname_counts(
         distinct_inferred_surnames=len(surname_counts),
         written_final_token_names=inferred_names - adjusted_names,
         record_suffix_adjusted_names=adjusted_names,
-        adjustments_by_suffix=dict(sorted(suffix_counts.items())),
+        record_suffix_chain_adjusted_names=chain_adjusted_names,
+        matched_by_suffix=dict(sorted(suffix_counts.items())),
+        skipped_chain_tokens=dict(sorted(skipped_chain_tokens.items())),
         abstentions_by_reason=dict(sorted(abstentions.items())),
     )
 

@@ -232,9 +232,10 @@ official transcription quality does not by itself make every final token a
 surname. The complete contract is in `docs/bihar-land-counts.md`.
 
 The separate land inference pass adjusts 79,891 names whose written final token
-exactly matches one of 10 approved administrative suffixes. It selects exactly
-the preceding eligible token and reports direct-written and adjusted support
-separately. It performs no fuzzy suffix matching or recursive skipping.
+exactly matches one of 10 approved administrative suffixes. Version 2 scans
+left across exact `एव` and `एवं` connectors and repeated approved suffixes. It
+reports direct-written, immediate-previous, and chain-adjusted support
+separately and performs no fuzzy suffix matching.
 
 No hand-labeled surname corpus is required. Manual review, if performed, audits
 linkage precision rather than supplying surname labels.

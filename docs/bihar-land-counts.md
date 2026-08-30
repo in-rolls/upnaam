@@ -99,7 +99,8 @@ upnaam infer-bihar-land unique_hindi_names_uncleaned.parquet \
 | `raw_variant_count` | Exact inferred-token renderings in the group |
 | `distinct_full_name_count` | Total distinct source-name support |
 | `written_final_token_count` | Support unchanged from the literal final token |
-| `record_suffix_adjusted_count` | Support moved to the preceding eligible token |
+| `record_suffix_previous_token_count` | Support moved exactly one eligible token left |
+| `record_suffix_chain_token_count` | Support moved left across an exact connector or repeated suffix |
 | `inference_source` | Frozen official-name-vocabulary source label |
 | `normalization_revision` | Normalization implementation revision |
 | `inference_revision` | Exact suffix-rule revision |
@@ -109,19 +110,24 @@ The rule is deliberately narrow:
 1. Apply the ordinary Bihar final-token rule.
 2. If the selected final token exactly matches one of `अन्य`, `बगेरह`,
    `बगैरह`, `वगेरह`, `वगै`, `वगै0`, `वगैरह`, `वगैरा`, `वैगरह`, or `वोगैरह`,
-   select the preceding eligible token in the separate inferred field.
+   scan left across exact connector tokens `एव` and `एवं` and repeated approved
+   suffix tokens, then select the first preceding eligible token in the
+   separate inferred field.
 3. Otherwise retain the written final token as the inferred result.
-4. Do not use edit distance, fuzzy suffix recognition, recursion, or another
-   token blacklist.
+4. Do not use edit distance, fuzzy suffix recognition, or another token
+   blacklist. `और` and `तथा` are not skipped because the audit found no case
+   where either immediately precedes an approved suffix.
 
 One inferred-token row reports total distinct-full-name support plus separate
-`written_final_token_count` and `record_suffix_adjusted_count` columns. Their
-sum must equal `distinct_full_name_count`. The artifact also records
-`bihar-land-record-suffix-inference-v1` and the source and normalization
+direct-written, previous-token, and chain-token count columns. Their sum must
+equal `distinct_full_name_count`. The artifact also records
+`bihar-land-record-suffix-inference-v2` and the source and normalization
 revisions.
 
 The complete run adjusts 79,891 names, or 2.74% of the 2,920,486 names with a
-selected token. It produces 146,790 inferred-token groups. The adjustments are:
+selected token. Of these, 79,183 use the immediate previous eligible token and
+708 use the exact chain rule. It produces 146,835 inferred-token groups. The
+suffix matches are:
 
 | Exact suffix | Adjusted names |
 | --- | ---: |
@@ -136,11 +142,13 @@ selected token. It produces 146,790 inferred-token groups. The adjustments are:
 | `बगेरह` | 1,729 |
 | `वगैरा` | 1,702 |
 
-This is an explicit heuristic, not adjudicated truth. For example, 699 adjusted
-names yield preceding token `एवं`, which is itself a conjunction. Version 1
-preserves that visible failure because the approved rule moves exactly one
-token left; it does not invent a second exclusion rule. The result should be
-evaluated as a provisional aggregate name-pattern vocabulary.
+The chain audit records 699 skipped `एवं` tokens, one skipped `एव`, seven
+repeated `वगैरह` tokens, and one repeated `वगै0`. After the correction, `एवं`
+has 14 direct-written occurrences and no suffix-adjusted occurrences. No
+full-run record exhausts its eligible tokens during the scan.
+
+This remains an explicit heuristic, not adjudicated truth. The result should
+be evaluated as a provisional aggregate name-pattern vocabulary.
 
 ## Relation to the ration vocabulary
 

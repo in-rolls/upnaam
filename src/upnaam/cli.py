@@ -28,6 +28,7 @@ from upnaam.adapters.bihar_land_counts import (
 from upnaam.adapters.bihar_land_inference import (
     BIHAR_LAND_INFERENCE_REVISION,
     BIHAR_LAND_INFERENCE_SOURCE,
+    BIHAR_LAND_RECORD_CONNECTORS,
     BIHAR_LAND_RECORD_SUFFIXES,
     infer_bihar_land_surname_counts,
     write_bihar_land_inference_audit,
@@ -244,6 +245,9 @@ def _bihar_land_inference(args: argparse.Namespace) -> None:
                 "abstained_names": report.abstained_names,
                 "distinct_inferred_surnames": report.distinct_inferred_surnames,
                 "record_suffix_adjusted_names": report.record_suffix_adjusted_names,
+                "record_suffix_chain_adjusted_names": (
+                    report.record_suffix_chain_adjusted_names
+                ),
             },
             parameters={
                 "inference_revision": BIHAR_LAND_INFERENCE_REVISION,
@@ -252,8 +256,9 @@ def _bihar_land_inference(args: argparse.Namespace) -> None:
                 "name_column": args.name_column,
                 "normalization_revision": NORMALIZATION_REVISION,
                 "record_suffix_matching": "exact_normalized_token",
+                "record_connectors": sorted(BIHAR_LAND_RECORD_CONNECTORS),
                 "record_suffixes": sorted(BIHAR_LAND_RECORD_SUFFIXES),
-                "surname_rule": "preceding_eligible_token_after_record_suffix",
+                "surname_rule": "first_name_token_before_exact_record_suffix_chain",
             },
         )
 
