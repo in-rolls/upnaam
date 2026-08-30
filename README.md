@@ -136,6 +136,7 @@ Reusable technology lives in a small set of modules:
 | `canonicalization/reconciliation.py` | Directed evidence, ranking, and ambiguity-preserving decisions |
 | `canonicalization/mapping.py` | Decision validation, application, status, reason, and provenance |
 | `adapters/bihar.py` | Official-land reference labels on accepted Bihar links |
+| `adapters/bihar_ration.py` | Grouped written-surname counts from Bihar ration rosters |
 | `adapters/punjab.py` | Frozen Punjab roll plus validated Indicate alignment |
 | `adapters/rajasthan.py` | Surname-only evidence from accepted ration links |
 | `adapters/rajasthan_reference.py` | Ration-card reference labels on accepted Rajasthan links |
@@ -153,6 +154,9 @@ upnaam labels-bihar-land bihar_links.parquet bihar_reference_labels.parquet \
   --manifest bihar_reference_manifest.json
 upnaam labels-rajasthan-ration rajasthan_links.parquet \
   rajasthan_reference_labels.parquet --manifest rajasthan_reference_manifest.json
+upnaam aggregate-bihar-ration bihar_ration_surname_counts.parquet \
+  --part ration_cards.sqlite.gz.001 --part ration_cards.sqlite.gz.002 \
+  --index ration_cards.sqlite.gzidx --audit bihar_ration_counts_audit.json
 upnaam evidence-rajasthan accepted_links.parquet rajasthan_evidence.parquet
 upnaam reconcile rank rajasthan_evidence.parquet candidates.parquet
 upnaam reconcile decide candidates.parquet decisions.parquet --audit audit.json
@@ -219,6 +223,12 @@ The Bihar ration SQLite source does not need to be expanded to its 56.7 GB
 logical size. Upnaam's generic compressed-SQLite adapter uses a reusable seek
 index to run targeted read-only queries directly over its two 3.30 GB archive
 parts. The access contract and example are in `docs/compressed-sqlite.md`.
+
+The first complete Bihar ration aggregation scans 17,696,683 household rosters
+and 85,798,262 stored member rows. It selects 79,358,176 written final tokens
+into 310,949 normalized groups while retaining `Devi`, `Kumar`, `Kumari`, and
+similar tokens. Results and the denominator audit are in
+`docs/bihar-ration-counts.md`.
 
 ## Privacy and non-goals
 

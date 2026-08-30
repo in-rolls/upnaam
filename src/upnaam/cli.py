@@ -201,6 +201,50 @@ def _rajasthan_reference_labels(args: argparse.Namespace) -> None:
         )
 
 
+def _bihar_ration_counts(args: argparse.Namespace) -> None:
+    from upnaam.adapters.bihar_ration import (
+        BIHAR_RATION_AGGREGATE_REVISION,
+        BIHAR_RATION_PROVENANCE,
+        build_bihar_ration_surname_counts,
+        write_bihar_ration_aggregate_audit,
+    )
+
+    report = build_bihar_ration_surname_counts(
+        args.parts,
+        args.index,
+        args.output,
+        household_limit=args.limit_households,
+    )
+    if args.audit:
+        write_bihar_ration_aggregate_audit(args.audit, report)
+    if args.manifest:
+        outputs = [args.output]
+        if args.audit is not None:
+            outputs.append(args.audit)
+        index_manifest = args.index.with_suffix(f"{args.index.suffix}.json")
+        write_manifest(
+            args.manifest,
+            stage="bihar_ration_surname_counts",
+            inputs=[*args.parts, args.index, index_manifest],
+            outputs=outputs,
+            row_counts={
+                "source_households": report.source_households,
+                "parsed_member_rows": report.parsed_member_rows,
+                "selected_members": report.selected_members,
+                "abstained_members": report.abstained_members,
+                "distinct_surnames": report.distinct_surnames,
+            },
+            parameters={
+                "aggregate_revision": BIHAR_RATION_AGGREGATE_REVISION,
+                "household_limit": report.household_limit,
+                "normalization_revision": NORMALIZATION_REVISION,
+                "source_scan_complete": report.source_scan_complete,
+                "surname_provenance": BIHAR_RATION_PROVENANCE,
+                "surname_rule": "last_eligible_token",
+            },
+        )
+
+
 def _reconcile_rank(args: argparse.Namespace) -> None:
     frame = read_table(args.input)
     required = {
@@ -460,6 +504,20 @@ def build_parser() -> argparse.ArgumentParser:
     rajasthan_labels.add_argument("--manifest", type=_path)
     rajasthan_labels.add_argument("--batch-size", type=int, default=100_000)
     rajasthan_labels.set_defaults(handler=_rajasthan_reference_labels)
+
+    bihar_ration = commands.add_parser(
+        "aggregate-bihar-ration",
+        help="group written surname tokens in Bihar ration rosters",
+    )
+    bihar_ration.add_argument("output", type=_path)
+    bihar_ration.add_argument(
+        "--part", dest="parts", action="append", required=True, type=_path
+    )
+    bihar_ration.add_argument("--index", required=True, type=_path)
+    bihar_ration.add_argument("--audit", type=_path)
+    bihar_ration.add_argument("--manifest", type=_path)
+    bihar_ration.add_argument("--limit-households", type=int)
+    bihar_ration.set_defaults(handler=_bihar_ration_counts)
 
     reconcile = commands.add_parser("reconcile", help="reconcile surname spellings")
     reconcile_commands = reconcile.add_subparsers(dest="operation", required=True)
