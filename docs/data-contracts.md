@@ -91,6 +91,13 @@ The typed grouped artifact and manifest record the raw-token mode, normalized
 token, distinct-full-name support, abstentions, source hash, and rule
 revisions. See [Bihar land surname counts](bihar-land-counts.md).
 
+The separate inferred vocabulary reads the same distinct-name source. It moves
+exactly one token left only when the written final token exactly matches the
+versioned 10-token administrative-suffix list. Its grouped rows split support
+between unchanged written-final results and suffix-adjusted results. The two
+counts must sum to the row total. The manifest stores the complete suffix list;
+the literal written-token artifact remains unchanged.
+
 ## Output invariants
 
 - Raw name strings are never overwritten.

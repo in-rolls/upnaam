@@ -137,6 +137,7 @@ Reusable technology lives in a small set of modules:
 | `canonicalization/mapping.py` | Decision validation, application, status, reason, and provenance |
 | `adapters/bihar.py` | Official-land reference labels on accepted Bihar links |
 | `adapters/bihar_land_counts.py` | Grouped final-token vocabulary from distinct official Bihar land names |
+| `adapters/bihar_land_inference.py` | Separate inferred vocabulary after exact land-record suffixes |
 | `adapters/bihar_ration.py` | Grouped written-surname counts from Bihar ration rosters |
 | `adapters/punjab.py` | Frozen Punjab roll plus validated Indicate alignment |
 | `adapters/rajasthan.py` | Surname-only evidence from accepted ration links |
@@ -155,6 +156,8 @@ upnaam labels-bihar-land bihar_links.parquet bihar_reference_labels.parquet \
   --manifest bihar_reference_manifest.json
 upnaam aggregate-bihar-land unique_hindi_names_uncleaned.parquet \
   bihar_land_surname_counts.parquet --audit bihar_land_counts.json
+upnaam infer-bihar-land unique_hindi_names_uncleaned.parquet \
+  bihar_land_inferred_surname_counts.parquet --audit bihar_land_inference.json
 upnaam labels-rajasthan-ration rajasthan_links.parquet \
   rajasthan_reference_labels.parquet --manifest rajasthan_reference_manifest.json
 upnaam aggregate-bihar-ration bihar_ration_surname_counts.parquet \
@@ -227,6 +230,11 @@ groups form a provisional official-record vocabulary, not person counts or
 canonical labels. The frequent terminal notation `वगैरह` demonstrates why
 official transcription quality does not by itself make every final token a
 surname. The complete contract is in `docs/bihar-land-counts.md`.
+
+The separate land inference pass adjusts 79,891 names whose written final token
+exactly matches one of 10 approved administrative suffixes. It selects exactly
+the preceding eligible token and reports direct-written and adjusted support
+separately. It performs no fuzzy suffix matching or recursive skipping.
 
 No hand-labeled surname corpus is required. Manual review, if performed, audits
 linkage precision rather than supplying surname labels.

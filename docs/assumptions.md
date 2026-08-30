@@ -127,11 +127,13 @@ Edit similarity and evidence play different roles:
 Complete-link clustering remains a research comparator for earlier variant
 diagnostics. It is not the canonicalization method or public package API.
 
-The Bihar land vocabulary applies the same literal final-token rule to one row
-per distinct official ryot full-name string. It is descriptive, not a
-canonical mapping. In particular, source notations such as `वगैरह` and `अन्य`
-remain selected until a separate versioned terminal-notation policy is
-approved.
+The Bihar land written-token vocabulary applies the same literal final-token
+rule to one row per distinct official ryot full-name string. It is descriptive,
+not a canonical mapping. A separate inferred vocabulary applies the approved
+`bihar-land-record-suffix-inference-v1` rule: after an exact match to one of 10
+declared terminal administrative notations, it selects exactly the preceding
+eligible token. It does not fuzzy-match, recurse, or add another blacklist.
+Direct-written and suffix-adjusted support remain separate count columns.
 
 ## Not implemented in the baseline
 

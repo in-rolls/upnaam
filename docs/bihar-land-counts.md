@@ -75,10 +75,72 @@ token, and 3 missing or normalization-empty names.
 The `वगैरह` result is a material source-specific failure of the literal final
 token rule: the land name field commonly appends administrative notation
 meaning “and others.” Other frequent renderings include `वगै0`, `वोगैरह`,
-`वैगरह`, `वगेरह`, and `बगैरह`; `अन्य` is another observed suffix. These are
-preserved in this baseline so the audit remains faithful to the approved rule.
-A source-specific terminal-notation policy must be separately declared and
-versioned before the preceding token can be inferred as the surname.
+`वैगरह`, `वगेरह`, and `बगैरह`; `अन्य` is another observed suffix. These remain
+preserved in the written-token baseline. A separate artifact applies the
+approved source-specific inference rule described below.
+
+## Exact terminal-notation inference
+
+`infer-bihar-land` emits a second group-by artifact and never overwrites the
+literal written-token counts:
+
+```console
+upnaam infer-bihar-land unique_hindi_names_uncleaned.parquet \
+  bihar_land_inferred_surname_counts.parquet \
+  --audit bihar_land_inference.json \
+  --manifest bihar_land_inference.manifest.json
+```
+
+| Field | Meaning |
+| --- | --- |
+| `surname_inferred_normalized` | Grouping key after the exact suffix rule |
+| `surname_inferred_raw_mode` | Most frequent exact inferred token |
+| `surname_inferred_raw_mode_count` | Distinct names carrying the modal token |
+| `raw_variant_count` | Exact inferred-token renderings in the group |
+| `distinct_full_name_count` | Total distinct source-name support |
+| `written_final_token_count` | Support unchanged from the literal final token |
+| `record_suffix_adjusted_count` | Support moved to the preceding eligible token |
+| `inference_source` | Frozen official-name-vocabulary source label |
+| `normalization_revision` | Normalization implementation revision |
+| `inference_revision` | Exact suffix-rule revision |
+
+The rule is deliberately narrow:
+
+1. Apply the ordinary Bihar final-token rule.
+2. If the selected final token exactly matches one of `अन्य`, `बगेरह`,
+   `बगैरह`, `वगेरह`, `वगै`, `वगै0`, `वगैरह`, `वगैरा`, `वैगरह`, or `वोगैरह`,
+   select the preceding eligible token in the separate inferred field.
+3. Otherwise retain the written final token as the inferred result.
+4. Do not use edit distance, fuzzy suffix recognition, recursion, or another
+   token blacklist.
+
+One inferred-token row reports total distinct-full-name support plus separate
+`written_final_token_count` and `record_suffix_adjusted_count` columns. Their
+sum must equal `distinct_full_name_count`. The artifact also records
+`bihar-land-record-suffix-inference-v1` and the source and normalization
+revisions.
+
+The complete run adjusts 79,891 names, or 2.74% of the 2,920,486 names with a
+selected token. It produces 146,790 inferred-token groups. The adjustments are:
+
+| Exact suffix | Adjusted names |
+| --- | ---: |
+| `वगैरह` | 41,011 |
+| `वगै0` | 13,723 |
+| `वोगैरह` | 5,475 |
+| `वैगरह` | 4,758 |
+| `वगेरह` | 3,494 |
+| `अन्य` | 3,500 |
+| `बगैरह` | 2,410 |
+| `वगै` | 2,089 |
+| `बगेरह` | 1,729 |
+| `वगैरा` | 1,702 |
+
+This is an explicit heuristic, not adjudicated truth. For example, 699 adjusted
+names yield preceding token `एवं`, which is itself a conjunction. Version 1
+preserves that visible failure because the approved rule moves exactly one
+token left; it does not invent a second exclusion rule. The result should be
+evaluated as a provisional aggregate name-pattern vocabulary.
 
 ## Relation to the ration vocabulary
 

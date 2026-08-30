@@ -12,6 +12,8 @@ All notable changes to Upnaam will be documented here.
   thresholds but cannot create canonical mappings.
 - Add grouped written-final-token counts over distinct official Bihar land-name
   strings, including explicit terminal-notation diagnostics.
+- Add a separate Bihar land inferred-surname aggregate that moves exactly one
+  token left after an approved exact administrative suffix.
 - Define the recorded-surname and family-surname evidence contracts.
 - Add deterministic normalization and explicit surname candidate rules.
 - Reuse accepted Bihar land and Rajasthan ration-card links.
