@@ -137,6 +137,7 @@ Reusable technology lives in a small set of modules:
 | `adapters/bihar.py` | Official-land reference labels on accepted Bihar links |
 | `adapters/punjab.py` | Frozen Punjab roll plus validated Indicate alignment |
 | `adapters/rajasthan.py` | Surname-only evidence from accepted ration links |
+| `adapters/rajasthan_reference.py` | Ration-card reference labels on accepted Rajasthan links |
 | `adapters/links.py` | Accepted Bihar land and Rajasthan ration links |
 | `research/` | Developmental diagnostics and clustering comparator, not public API |
 
@@ -149,6 +150,8 @@ upnaam select normalized.parquet candidates.parquet --name-column name
 upnaam resolve electors.parquet resolved.parquet
 upnaam labels-bihar-land bihar_links.parquet bihar_reference_labels.parquet \
   --manifest bihar_reference_manifest.json
+upnaam labels-rajasthan-ration rajasthan_links.parquet \
+  rajasthan_reference_labels.parquet --manifest rajasthan_reference_manifest.json
 upnaam evidence-rajasthan accepted_links.parquet rajasthan_evidence.parquet
 upnaam reconcile rank rajasthan_evidence.parquet candidates.parquet
 upnaam reconcile decide candidates.parquet decisions.parquet --audit audit.json
@@ -193,6 +196,13 @@ The first Rajasthan surname-only pilot produces 2,021 observed-form decisions:
 1,206 unresolved forms. These are operating counts, not accuracy estimates;
 the ration-side token is a provisional anchor. Details and sample decisions are
 in `docs/canonicalization.md`.
+
+For the person-level Rajasthan reference artifact, the accepted ration-card
+transcription is explicitly treated as `provisional_gold`. Upnaam accepts its
+final eligible token even when the roll differs, abstains on one-token ration
+names, and excludes every link involving one of 570 ration members linked to
+multiple electors. The first run accepts 474,587 labels from 1,004,418 T1/T2
+links. The complete contract is in `docs/rajasthan-ration-reference.md`.
 
 For Bihar, Upnaam treats the official land-side name as the preferred reference
 transcription on the existing 4,387 exact unique one-to-one Shekhpura links.

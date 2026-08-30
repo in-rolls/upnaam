@@ -50,6 +50,15 @@ carry link tier, support, similarity, source, context, and evidence revision.
 The ration label is provisional because accepted person linkage is not surname
 adjudication.
 
+The separate reference-label stage adopts the stronger working assumption that
+the ration transcription is `provisional_gold` and its final eligible token is
+the reference surname. It preserves one row per elector, accepts ration/roll
+disagreements rather than resolving toward the roll, and abstains when the
+ration name has only one eligible token. The standardized input contains 570
+ration members linked to 1,159 elector rows; all such rows are retained but
+excluded because no automatic rule identifies the true elector. See
+[Rajasthan ration-card reference labels](rajasthan-ration-reference.md).
+
 ## Bihar land links
 
 The Shekhpura pilot links land accounts one-to-one to voter identifiers after

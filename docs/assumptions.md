@@ -71,6 +71,11 @@ matching; supported spelling canonicalization remains a separate stage.
 
 - Rajasthan reuses exactly the existing `milaan_raj` T1 and T2 person links.
   It rejects T3 and never searches for new matches.
+- For the Rajasthan person-level reference artifact, the accepted ration-card
+  transcription is `provisional_gold`. Its final eligible token is the
+  reference even when the roll token differs or the roll rule abstains.
+- Ration members linked to multiple elector rows are not adjudicated: every
+  associated row is retained but excluded from reference labels.
 - Bihar reuses the 4,387 accepted Shekhpura land links. Those links required
   exact normalized elector and relative names, so they are excluded from edit
   and omission learning.
@@ -78,8 +83,10 @@ matching; supported spelling canonicalization remains a separate stage.
   reference transcription. The reference surname is its final eligible token.
   A land/roll positional conflict is excluded; the land record may supply a
   reference when the roll positional rule abstains.
-- Bihar ration data is not used because no local bulk roster was found. Upnaam
-  makes no portal, GCP, or other cloud query.
+- Bihar ration data is not yet used because no local bulk roster was found. The
+  `in-rolls/ration_bihar` repository points to a restricted Harvard Dataverse
+  SQLite corpus; it is the next separate source pass. Upnaam has made no portal
+  or GCP query.
 - A linked record can split a one-token roll name only when the linked final
   eligible token is an exact suffix of the untouched roll name and at least two
   alphabetic characters remain before it. This produces recorded-surname

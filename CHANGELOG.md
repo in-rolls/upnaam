@@ -27,3 +27,6 @@ All notable changes to Upnaam will be documented here.
   reasons.
 - Reject and document a name-withheld relative/location linkage whose held-out
   full-name agreement was only 10.7%.
+- Add typed provisional-gold Rajasthan ration reference labels over the frozen
+  T1/T2 links, with final-token selection, explicit abstention, and exclusion
+  of nonunique ration-member links.

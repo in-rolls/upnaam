@@ -27,6 +27,14 @@ from upnaam.adapters.rajasthan import (
     build_rajasthan_surname_evidence,
     write_rajasthan_evidence_audit,
 )
+from upnaam.adapters.rajasthan_reference import (
+    RAJASTHAN_LINKAGE_BASIS,
+    RAJASTHAN_REFERENCE_REVISION,
+    RAJASTHAN_REFERENCE_STANDARD,
+    build_rajasthan_ration_reference_labels,
+    write_rajasthan_reference_audit,
+    write_rajasthan_reference_summary,
+)
 from upnaam.artifacts import write_manifest
 from upnaam.canonicalization import (
     AnchorEvidence,
@@ -155,6 +163,40 @@ def _bihar_reference_labels(args: argparse.Namespace) -> None:
                 "normalization_revision": NORMALIZATION_REVISION,
                 "reference_revision": BIHAR_REFERENCE_REVISION,
                 "surname_rule": "last_eligible_token",
+            },
+        )
+
+
+def _rajasthan_reference_labels(args: argparse.Namespace) -> None:
+    report = build_rajasthan_ration_reference_labels(
+        args.input, args.output, batch_size=args.batch_size
+    )
+    if args.audit:
+        write_rajasthan_reference_audit(args.audit, report)
+    if args.summary:
+        write_rajasthan_reference_summary(args.summary, report)
+    if args.manifest:
+        outputs = [args.output]
+        outputs.extend(path for path in (args.audit, args.summary) if path is not None)
+        write_manifest(
+            args.manifest,
+            stage="rajasthan_ration_reference_labels",
+            inputs=[args.input],
+            outputs=outputs,
+            row_counts={
+                "source_links": report.source_links,
+                "accepted_labels": report.accepted_labels,
+                "abstained_labels": report.abstained_labels,
+                "excluded_nonunique_links": report.excluded_nonunique_links,
+            },
+            parameters={
+                "accepted_link_tiers": ["T1", "T2"],
+                "linkage_basis": RAJASTHAN_LINKAGE_BASIS,
+                "normalization_revision": NORMALIZATION_REVISION,
+                "reference_revision": RAJASTHAN_REFERENCE_REVISION,
+                "reference_standard": RAJASTHAN_REFERENCE_STANDARD,
+                "surname_rule": "last_eligible_token",
+                "nonunique_ration_member_policy": "exclude_all_links",
             },
         )
 
@@ -406,6 +448,18 @@ def build_parser() -> argparse.ArgumentParser:
     bihar.add_argument("--manifest", type=_path)
     bihar.add_argument("--batch-size", type=int, default=100_000)
     bihar.set_defaults(handler=_bihar_reference_labels)
+
+    rajasthan_labels = commands.add_parser(
+        "labels-rajasthan-ration",
+        help="build Rajasthan ration-card reference labels",
+    )
+    rajasthan_labels.add_argument("input", type=_path)
+    rajasthan_labels.add_argument("output", type=_path)
+    rajasthan_labels.add_argument("--audit", type=_path)
+    rajasthan_labels.add_argument("--summary", type=_path)
+    rajasthan_labels.add_argument("--manifest", type=_path)
+    rajasthan_labels.add_argument("--batch-size", type=int, default=100_000)
+    rajasthan_labels.set_defaults(handler=_rajasthan_reference_labels)
 
     reconcile = commands.add_parser("reconcile", help="reconcile surname spellings")
     reconcile_commands = reconcile.add_subparsers(dest="operation", required=True)

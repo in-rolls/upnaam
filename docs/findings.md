@@ -100,3 +100,17 @@ official land transcription and the positional extraction on the linked slice;
 it is not an independent spelling-variant accuracy estimate. A name-withheld
 relative-and-location linkage was tested and rejected after only 10.7% of 2,696
 nominally unique pairs agreed on the held-out full name.
+
+## Rajasthan ration-card reference labels
+
+Treating the accepted ration transcription as `provisional_gold` produces
+474,587 reference labels from 1,004,418 T1/T2 person-link rows. Another 528,672
+rows abstain because the ration name has only one eligible token. The input has
+570 ration members linked to more than one elector; all 1,159 associated rows
+are retained but excluded.
+
+Among accepted labels, 230,503 equal the roll-side normalized final token,
+26,751 differ, and 217,333 supply a token where the roll positional rule
+abstains. These are consequences of the declared final-token rule, not proof
+that every selected token is hereditary: `राम`, `लाल`, `देवी`, `बाई`, and
+`कुमार` are common outputs and can play other roles in a name.
