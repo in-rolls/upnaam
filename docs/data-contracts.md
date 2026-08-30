@@ -61,6 +61,14 @@ Upnaam therefore recovers raw text by the upstream `(voter ID, normalized
 elector name, normalized relative name)` key and requires that key to identify
 one unique raw name pair per accepted land account.
 
+The reference-label stage preserves all 4,387 accepted link rows and treats the
+official land-side name as the preferred transcription. It independently
+applies the Bihar final-token rule to the untouched land and roll names. A
+land-side selected token becomes the reference when the roll token agrees or
+the roll positional rule abstains. A positional disagreement is excluded, not
+resolved automatically. Full schema, recode, and selection contracts are in
+[Bihar land-record reference labels](bihar-land-reference.md).
+
 ## Output invariants
 
 - Raw name strings are never overwritten.

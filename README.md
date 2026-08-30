@@ -134,6 +134,7 @@ Reusable technology lives in a small set of modules:
 | `canonicalization/candidates.py` | Efficient edit-distance candidate generation |
 | `canonicalization/reconciliation.py` | Directed evidence, ranking, and ambiguity-preserving decisions |
 | `canonicalization/mapping.py` | Decision validation, application, status, reason, and provenance |
+| `adapters/bihar.py` | Official-land reference labels on accepted Bihar links |
 | `adapters/punjab.py` | Frozen Punjab roll plus validated Indicate alignment |
 | `adapters/rajasthan.py` | Surname-only evidence from accepted ration links |
 | `adapters/links.py` | Accepted Bihar land and Rajasthan ration links |
@@ -146,6 +147,8 @@ separate pipeline operation and reads or writes CSV/CSV.GZ or Parquet:
 upnaam normalize names.parquet normalized.parquet --name-column name
 upnaam select normalized.parquet candidates.parquet --name-column name
 upnaam resolve electors.parquet resolved.parquet
+upnaam labels-bihar-land bihar_links.parquet bihar_reference_labels.parquet \
+  --manifest bihar_reference_manifest.json
 upnaam evidence-rajasthan accepted_links.parquet rajasthan_evidence.parquet
 upnaam reconcile rank rajasthan_evidence.parquet candidates.parquet
 upnaam reconcile decide candidates.parquet decisions.parquet --audit audit.json
@@ -190,6 +193,13 @@ The first Rajasthan surname-only pilot produces 2,021 observed-form decisions:
 1,206 unresolved forms. These are operating counts, not accuracy estimates;
 the ration-side token is a provisional anchor. Details and sample decisions are
 in `docs/canonicalization.md`.
+
+For Bihar, Upnaam treats the official land-side name as the preferred reference
+transcription on the existing 4,387 exact unique one-to-one Shekhpura links.
+The first run accepts 4,366 final-token reference labels, abstains on 20
+land-side single-token names, and excludes one land/roll positional conflict.
+The complete join contract, dictionary, and recode ledger are in
+`docs/bihar-land-reference.md`.
 
 No hand-labeled surname corpus is required. Manual review, if performed, audits
 linkage precision rather than supplying surname labels.

@@ -11,6 +11,13 @@ from typing import TYPE_CHECKING, Any, cast
 
 import pandas as pd
 
+from upnaam.adapters.bihar import (
+    BIHAR_LINKAGE_BASIS,
+    BIHAR_REFERENCE_REVISION,
+    build_bihar_land_reference_labels,
+    write_bihar_reference_audit,
+    write_bihar_reference_summary,
+)
 from upnaam.adapters.punjab import (
     build_punjab_elector_artifact,
     write_punjab_audit,
@@ -20,6 +27,7 @@ from upnaam.adapters.rajasthan import (
     build_rajasthan_surname_evidence,
     write_rajasthan_evidence_audit,
 )
+from upnaam.artifacts import write_manifest
 from upnaam.canonicalization import (
     AnchorEvidence,
     RankedAnchorCandidate,
@@ -118,6 +126,37 @@ def _resolve_punjab(args: argparse.Namespace) -> None:
         write_punjab_audit(args.audit, report)
     if args.summary:
         write_punjab_summary(args.summary, report)
+
+
+def _bihar_reference_labels(args: argparse.Namespace) -> None:
+    report = build_bihar_land_reference_labels(
+        args.input, args.output, batch_size=args.batch_size
+    )
+    if args.audit:
+        write_bihar_reference_audit(args.audit, report)
+    if args.summary:
+        write_bihar_reference_summary(args.summary, report)
+    if args.manifest:
+        outputs = [args.output]
+        outputs.extend(path for path in (args.audit, args.summary) if path is not None)
+        write_manifest(
+            args.manifest,
+            stage="bihar_land_reference_labels",
+            inputs=[args.input],
+            outputs=outputs,
+            row_counts={
+                "source_links": report.source_links,
+                "accepted_labels": report.accepted_labels,
+                "abstained_labels": report.abstained_labels,
+                "excluded_conflicts": report.excluded_conflicts,
+            },
+            parameters={
+                "linkage_basis": BIHAR_LINKAGE_BASIS,
+                "normalization_revision": NORMALIZATION_REVISION,
+                "reference_revision": BIHAR_REFERENCE_REVISION,
+                "surname_rule": "last_eligible_token",
+            },
+        )
 
 
 def _reconcile_rank(args: argparse.Namespace) -> None:
@@ -356,6 +395,17 @@ def build_parser() -> argparse.ArgumentParser:
     punjab.add_argument("--summary", type=_path)
     punjab.add_argument("--batch-size", type=int, default=100_000)
     punjab.set_defaults(handler=_resolve_punjab)
+
+    bihar = commands.add_parser(
+        "labels-bihar-land", help="build Bihar land-record reference labels"
+    )
+    bihar.add_argument("input", type=_path)
+    bihar.add_argument("output", type=_path)
+    bihar.add_argument("--audit", type=_path)
+    bihar.add_argument("--summary", type=_path)
+    bihar.add_argument("--manifest", type=_path)
+    bihar.add_argument("--batch-size", type=int, default=100_000)
+    bihar.set_defaults(handler=_bihar_reference_labels)
 
     reconcile = commands.add_parser("reconcile", help="reconcile surname spellings")
     reconcile_commands = reconcile.add_subparsers(dest="operation", required=True)

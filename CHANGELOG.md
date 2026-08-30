@@ -22,3 +22,8 @@ All notable changes to Upnaam will be documented here.
 - Add stable canonicalization reasons and store the exact support and similarity
   gates in candidate and decision artifacts.
 - Retain complete-link clustering only as a developmental research comparator.
+- Add typed Bihar official-land reference labels over the frozen 4,387 exact
+  one-to-one Shekhpura links, including positional abstention and conflict
+  reasons.
+- Reject and document a name-withheld relative/location linkage whose held-out
+  full-name agreement was only 10.7%.

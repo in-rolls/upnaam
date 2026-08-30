@@ -1,0 +1,5 @@
+group,value,rows,accepted,abstained,excluded
+overall,all,4387,4366,20,1
+sex,female,1533,1530,2,1
+sex,male,2845,2827,18,0
+sex,unknown,9,9,0,0

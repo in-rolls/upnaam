@@ -74,6 +74,10 @@ matching; supported spelling canonicalization remains a separate stage.
 - Bihar reuses the 4,387 accepted Shekhpura land links. Those links required
   exact normalized elector and relative names, so they are excluded from edit
   and omission learning.
+- On those accepted links, the official land-side name is the preferred Bihar
+  reference transcription. The reference surname is its final eligible token.
+  A land/roll positional conflict is excluded; the land record may supply a
+  reference when the roll positional rule abstains.
 - Bihar ration data is not used because no local bulk roster was found. Upnaam
   makes no portal, GCP, or other cloud query.
 - A linked record can split a one-token roll name only when the linked final

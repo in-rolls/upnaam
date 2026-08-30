@@ -84,3 +84,19 @@ accepted links are selected on complete-name skeleton equality, and the
 ration-side token is a provisional anchor rather than a hand-adjudicated gold
 spelling. The 114 ambiguous forms demonstrate why candidate rankings are kept
 separate from decisions.
+
+## Bihar official-land reference labels
+
+The 4,387 accepted Shekhpura links produce 4,366 official-land reference
+surnames under the Bihar final-token rule. Of these, 4,365 agree with the
+roll-side normalized final token. One official land record adds a reference
+where the roll rule abstains, 20 land names themselves yield a positional
+abstention, and one token-order conflict is excluded. The accepted labels cover
+78 distinct normalized reference surnames.
+
+This near-perfect agreement is expected because the upstream person link used
+the complete normalized name and relative name. It supports the quality of the
+official land transcription and the positional extraction on the linked slice;
+it is not an independent spelling-variant accuracy estimate. A name-withheld
+relative-and-location linkage was tested and rejected after only 10.7% of 2,696
+nominally unique pairs agreed on the held-out full name.
