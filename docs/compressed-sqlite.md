@@ -8,9 +8,9 @@ two archive parts occupy about 3.30 GB, while the logical SQLite database is
 The generic adapter treats ordered archive parts as one compressed byte stream,
 builds an [`indexed-gzip`](https://github.com/pauldmccarthy/indexed_gzip)
 seek index, and exposes decompressed byte ranges to SQLite through a read-only
-[APSW virtual file system](https://rogerbinns.github.io/apsw/vfs.html). The
-index is built once and reused. For the Bihar source it is 417,660,907 bytes,
-or about 398 MiB.
+[APSW virtual file system](https://github.com/rogerbinns/apsw).
+The index is built once and reused. For the Bihar source it is 417,660,907
+bytes, or about 398 MiB.
 
 Install the optional dependencies:
 
