@@ -28,6 +28,7 @@ ELECTOR_OUTPUT_COLUMNS = (
     "surname_latin_normalized",
     "surname_canonical",
     "canonicalization_status",
+    "canonicalization_reason",
     "canonicalization_provenance",
     "canonicalization_revision",
     "surname_position",
@@ -117,6 +118,15 @@ def resolve_electors(
                 else CanonicalizationStatus.NOT_APPLICABLE.value
             )
         )
+        canonicalization_reason = (
+            "no_reconciliation_decision"
+            if latin_normalized is not None
+            else (
+                "normalization_unavailable"
+                if selected is not None
+                else "surname_not_selected"
+            )
+        )
         output.append(
             {
                 "elector_id": elector_id,
@@ -132,6 +142,7 @@ def resolve_electors(
                 "surname_latin_normalized": latin_normalized,
                 "surname_canonical": latin_normalized,
                 "canonicalization_status": canonicalization_status,
+                "canonicalization_reason": canonicalization_reason,
                 "canonicalization_provenance": None,
                 "canonicalization_revision": CANONICALIZATION_REVISION,
                 "surname_position": position if selected is not None else None,

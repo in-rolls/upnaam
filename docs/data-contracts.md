@@ -43,6 +43,13 @@ ration name. A token present only after ration-side whitespace splitting is
 segmentation evidence. It may resolve a suffix already present in the raw roll
 string, but it never populates `family_surname`.
 
+The canonicalization adapter uses those same accepted links for a narrower
+purpose: compare the selected final token on the two sides. Its evidence rows
+are directed from the roll token to a stable ration-anchor ID and label. They
+carry link tier, support, similarity, source, context, and evidence revision.
+The ration label is provisional because accepted person linkage is not surname
+adjudication.
+
 ## Bihar land links
 
 The Shekhpura pilot links land accounts one-to-one to voter identifiers after
@@ -64,6 +71,9 @@ one unique raw name pair per accepted land account.
   manifest when a reproducible restricted-data build is run.
 - Every recorded-surname row carries the immutable `resolver_revision` that
   selected its state-position rule.
+- A reconciliation candidate stores the support and similarity gates that made
+  it eligible. A decision accepts exactly one eligible anchor, preserves
+  multiple eligible anchors as `ambiguous`, and records a stable reason.
 - A native surname can remain resolved when its independent Latin token cannot
   be aligned; the Latin-normalized and canonical fields stay null and carry an
   explicit transliteration and canonicalization status.
@@ -80,7 +90,8 @@ input columns are accepted but ignored by `resolver-v1`.
 
 The output preserves row count, order, identifier, state, and raw name. It adds
 the exact selected substring; separate source-normalized, Latin-raw,
-Latin-normalized, and canonical forms; canonicalization status and provenance;
+Latin-normalized, and canonical forms; canonicalization status, reason, and
+provenance;
 selected position; abstention fields; and all three transformation revisions.
 The interface does not infer family surnames, households, token types, caste,
 or a calibrated confidence score.

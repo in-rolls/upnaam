@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import argparse
+import json
+from collections import Counter
 from dataclasses import asdict
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
@@ -14,23 +16,26 @@ from upnaam.adapters.punjab import (
     write_punjab_audit,
     write_punjab_summary,
 )
+from upnaam.adapters.rajasthan import (
+    build_rajasthan_surname_evidence,
+    write_rajasthan_evidence_audit,
+)
 from upnaam.canonicalization import (
-    EvidenceTier,
-    VariantEvidence,
-    apply_canonical_map,
-    canonical_map_from_frame,
-    cluster_variants,
-    generate_variant_candidates,
+    AnchorEvidence,
+    RankedAnchorCandidate,
+    apply_reconciliation,
+    decide_anchor_candidates,
+    rank_anchor_candidates,
+    reconciliation_index_from_frame,
 )
 from upnaam.normalization import NORMALIZATION_REVISION, normalize_name
 from upnaam.policy import load_resolver_policy
 from upnaam.resolver import resolve_electors
-from upnaam.schema import CANONICALIZATION_REVISION
 from upnaam.selection import extract_surname_candidates
 from upnaam.tables import read_table, write_table
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Sequence
+    from collections.abc import Callable, Hashable, Mapping, Sequence
 
     from upnaam.selection import SurnameCandidateResult
 
@@ -42,6 +47,13 @@ def _require_column(frame: pd.DataFrame, column: str) -> pd.Series:
     if isinstance(result, pd.DataFrame):
         raise ValueError(f"input table contains duplicate column: {column}")
     return result
+
+
+def _required_string(row: Mapping[Hashable, Any], column: str) -> str:
+    value = row[column]
+    if not isinstance(value, str) or not value:
+        raise ValueError(f"{column} must contain nonempty strings")
+    return value
 
 
 def _normalize(args: argparse.Namespace) -> None:
@@ -108,80 +120,35 @@ def _resolve_punjab(args: argparse.Namespace) -> None:
         write_punjab_summary(args.summary, report)
 
 
-def _candidate_frequencies(args: argparse.Namespace) -> dict[str, int]:
+def _reconcile_rank(args: argparse.Namespace) -> None:
     frame = read_table(args.input)
-    tokens = _require_column(frame, args.token_column)
-    if args.count_column:
-        counts = cast(
-            "pd.Series",
-            pd.to_numeric(_require_column(frame, args.count_column), errors="raise"),
-        )
-        if tokens.isna().any():
-            raise ValueError("frequency tokens must be nonnull")
-        if (counts <= 0).any() or counts.isna().any():
-            raise ValueError("frequency counts must be positive and nonnull")
-        frequencies = pd.DataFrame(
-            {"token": tokens.astype(str), "count": counts.astype(int)}
-        )
-        grouped = frequencies.groupby("token", sort=True)["count"].sum()
-        return {str(token): int(count) for token, count in grouped.items()}
-    tokens = tokens.dropna().astype(str)
-    return {str(token): int(count) for token, count in tokens.value_counts().items()}
-
-
-def _canonicalize_candidates(args: argparse.Namespace) -> None:
-    candidates = generate_variant_candidates(
-        _candidate_frequencies(args),
-        max_distance=args.max_distance,
-        min_similarity=args.min_similarity,
-    )
-    columns = (
-        "left",
-        "right",
-        "distance",
+    required = {
+        "observed_form",
+        "context",
+        "canonical_id",
+        "canonical_label",
+        "support",
         "similarity",
-        "left_frequency",
-        "right_frequency",
-    )
-    write_table(
-        pd.DataFrame((asdict(item) for item in candidates), columns=columns),
-        args.output,
-    )
-
-
-def _canonicalize_build(args: argparse.Namespace) -> None:
-    frame = read_table(args.input)
-    required = {"left", "right", "support", "similarity", "source"}
+        "source",
+        "evidence_tier",
+    }
     missing = required.difference(frame.columns)
     if missing:
-        raise ValueError(f"evidence table is missing columns: {sorted(missing)}")
-    evidence = []
-    for row in frame.to_dict(orient="records"):
-        tier_value = row.get("evidence_tier", EvidenceTier.LINKED_RECORD.value)
-        preferred = row.get("preferred")
-        preferred_missing = preferred is None or cast("bool", pd.isna(preferred))
-        accepted_value = row.get("accepted", True)
-        if isinstance(accepted_value, str):
-            if accepted_value.casefold() not in {"true", "false"}:
-                raise ValueError("accepted evidence values must be true or false")
-            accepted = accepted_value.casefold() == "true"
-        else:
-            if cast("bool", pd.isna(accepted_value)):
-                raise ValueError("accepted evidence values must be nonnull")
-            accepted = bool(accepted_value)
-        evidence.append(
-            VariantEvidence(
-                left=str(row["left"]),
-                right=str(row["right"]),
-                support=int(row["support"]),
-                similarity=float(row["similarity"]),
-                source=str(row["source"]),
-                evidence_tier=EvidenceTier(tier_value),
-                accepted=accepted,
-                preferred=None if preferred_missing else str(preferred),
-            )
+        raise ValueError(f"anchor evidence is missing columns: {sorted(missing)}")
+    evidence = [
+        AnchorEvidence(
+            observed_form=_required_string(row, "observed_form"),
+            context=_required_string(row, "context"),
+            canonical_id=_required_string(row, "canonical_id"),
+            canonical_label=_required_string(row, "canonical_label"),
+            support=int(row["support"]),
+            similarity=float(row["similarity"]),
+            source=_required_string(row, "source"),
+            evidence_tier=_required_string(row, "evidence_tier"),
         )
-    mappings = cluster_variants(
+        for row in frame.to_dict(orient="records")
+    ]
+    candidates = rank_anchor_candidates(
         evidence,
         min_support=args.min_support,
         min_similarity=args.min_similarity,
@@ -192,30 +159,160 @@ def _canonicalize_build(args: argparse.Namespace) -> None:
             "sources": "|".join(item.sources),
             "evidence_tiers": "|".join(item.evidence_tiers),
         }
-        for item in mappings
+        for item in candidates
     ]
-    columns = (
-        "variant",
-        "canonical",
-        "cluster_size",
-        "direct_support",
+    columns = [
+        "observed_form",
+        "context",
+        "canonical_id",
+        "canonical_label",
+        "rank",
+        "eligible",
+        "support",
+        "total_support",
+        "support_share",
+        "weighted_similarity",
         "sources",
         "evidence_tiers",
-    )
-    write_table(pd.DataFrame(rows, columns=columns), args.output)
+        "min_support_threshold",
+        "min_similarity_threshold",
+        "reconciliation_revision",
+    ]
+    write_table(pd.DataFrame(rows, columns=pd.Index(columns)), args.output)
 
 
-def _canonicalize_apply(args: argparse.Namespace) -> None:
+def _parse_bool(value: object) -> bool:
+    if value is True or value is False:
+        return bool(value)
+    if isinstance(value, str) and value.casefold() in {"true", "false"}:
+        return value.casefold() == "true"
+    raise ValueError("boolean columns must contain only true or false")
+
+
+def _split_values(value: object) -> tuple[str, ...]:
+    if isinstance(value, str):
+        return tuple(item for item in value.split("|") if item)
+    if isinstance(value, (list, tuple)):
+        return tuple(str(item) for item in value)
+    if value is None or cast("bool", pd.isna(cast("Any", value))):
+        return ()
+    raise ValueError("multi-value candidate fields have an invalid value")
+
+
+def _reconcile_decide(args: argparse.Namespace) -> None:
+    frame = read_table(args.input)
+    required = {
+        "observed_form",
+        "context",
+        "canonical_id",
+        "canonical_label",
+        "rank",
+        "eligible",
+        "support",
+        "total_support",
+        "support_share",
+        "weighted_similarity",
+        "sources",
+        "evidence_tiers",
+        "min_support_threshold",
+        "min_similarity_threshold",
+        "reconciliation_revision",
+    }
+    missing = required.difference(frame.columns)
+    if missing:
+        raise ValueError(f"ranked candidates are missing columns: {sorted(missing)}")
+    candidates = [
+        RankedAnchorCandidate(
+            observed_form=_required_string(row, "observed_form"),
+            context=_required_string(row, "context"),
+            canonical_id=_required_string(row, "canonical_id"),
+            canonical_label=_required_string(row, "canonical_label"),
+            rank=int(row["rank"]),
+            eligible=_parse_bool(row["eligible"]),
+            support=int(row["support"]),
+            total_support=int(row["total_support"]),
+            support_share=float(row["support_share"]),
+            weighted_similarity=float(row["weighted_similarity"]),
+            sources=_split_values(row["sources"]),
+            evidence_tiers=_split_values(row["evidence_tiers"]),
+            min_support_threshold=int(row["min_support_threshold"]),
+            min_similarity_threshold=float(row["min_similarity_threshold"]),
+            reconciliation_revision=_required_string(row, "reconciliation_revision"),
+        )
+        for row in frame.to_dict(orient="records")
+    ]
+    decisions = decide_anchor_candidates(candidates)
+    rows = [{**asdict(item), "status": item.status.value} for item in decisions]
+    columns = [
+        "observed_form",
+        "context",
+        "canonical_id",
+        "canonical_label",
+        "status",
+        "reason",
+        "candidate_count",
+        "eligible_candidate_count",
+        "top_support",
+        "runner_up_support",
+        "min_support_threshold",
+        "min_similarity_threshold",
+        "reconciliation_revision",
+    ]
+    write_table(pd.DataFrame(rows, columns=pd.Index(columns)), args.output)
+    if args.audit:
+        statuses = Counter(item.status.value for item in decisions)
+        accepted = [item for item in decisions if item.status.value == "accepted"]
+        thresholds = {
+            (item.min_support_threshold, item.min_similarity_threshold)
+            for item in decisions
+        }
+        report = {
+            "observed_forms": len(decisions),
+            "candidate_rows": len(candidates),
+            "accepted": statuses["accepted"],
+            "accepted_identity": sum(
+                item.observed_form == item.canonical_label for item in accepted
+            ),
+            "accepted_variant": sum(
+                item.observed_form != item.canonical_label for item in accepted
+            ),
+            "ambiguous": statuses["ambiguous"],
+            "unresolved": statuses["unresolved"],
+            "min_support_threshold": (
+                next(iter(thresholds))[0] if thresholds else None
+            ),
+            "min_similarity_threshold": (
+                next(iter(thresholds))[1] if thresholds else None
+            ),
+        }
+        args.audit.parent.mkdir(parents=True, exist_ok=True)
+        temporary = args.audit.with_suffix(f"{args.audit.suffix}.tmp")
+        with temporary.open("w", encoding="utf-8") as stream:
+            json.dump(report, stream, indent=2, sort_keys=True)
+            stream.write("\n")
+        temporary.replace(args.audit)
+
+
+def _reconcile_apply(args: argparse.Namespace) -> None:
     records = read_table(args.input)
-    mapping = canonical_map_from_frame(read_table(args.mapping))
-    output = apply_canonical_map(
+    decisions = reconciliation_index_from_frame(read_table(args.decisions))
+    output = apply_reconciliation(
         records,
-        mapping,
+        decisions,
         normalized_column=args.normalized_column,
-        revision=args.revision,
+        context=args.context,
+        context_column=args.context_column,
         provenance=args.provenance,
     )
     write_table(output, args.output)
+
+
+def _rajasthan_evidence(args: argparse.Namespace) -> None:
+    report = build_rajasthan_surname_evidence(
+        args.input, args.output, batch_size=args.batch_size
+    )
+    if args.audit:
+        write_rajasthan_evidence_audit(args.audit, report)
 
 
 def _path(value: str) -> Path:
@@ -260,35 +357,45 @@ def build_parser() -> argparse.ArgumentParser:
     punjab.add_argument("--batch-size", type=int, default=100_000)
     punjab.set_defaults(handler=_resolve_punjab)
 
-    canonicalize = commands.add_parser("canonicalize", help="canonicalize spellings")
-    canonical_commands = canonicalize.add_subparsers(dest="operation", required=True)
-    candidates = _table_command(
-        canonical_commands,
-        "candidates",
-        "generate string-similarity candidates",
-        _canonicalize_candidates,
+    reconcile = commands.add_parser("reconcile", help="reconcile surname spellings")
+    reconcile_commands = reconcile.add_subparsers(dest="operation", required=True)
+    rank = _table_command(
+        reconcile_commands,
+        "rank",
+        "rank directed anchor evidence",
+        _reconcile_rank,
     )
-    candidates.add_argument("--token-column", default="surname_latin_normalized")
-    candidates.add_argument("--count-column")
-    candidates.add_argument("--max-distance", type=int, default=2)
-    candidates.add_argument("--min-similarity", type=float, default=0.75)
+    rank.add_argument("--min-support", type=int, default=2)
+    rank.add_argument("--min-similarity", type=float, default=0.75)
 
-    build = _table_command(
-        canonical_commands,
-        "build",
-        "build a map from accepted evidence",
-        _canonicalize_build,
+    decide = _table_command(
+        reconcile_commands,
+        "decide",
+        "accept one anchor or preserve ambiguity",
+        _reconcile_decide,
     )
-    build.add_argument("--min-support", type=int, default=2)
-    build.add_argument("--min-similarity", type=float, default=0.75)
+    decide.add_argument("--audit", type=_path)
 
     apply = _table_command(
-        canonical_commands, "apply", "apply an accepted map", _canonicalize_apply
+        reconcile_commands,
+        "apply",
+        "apply reconciliation decisions",
+        _reconcile_apply,
     )
-    apply.add_argument("mapping", type=_path)
+    apply.add_argument("decisions", type=_path)
     apply.add_argument("--normalized-column", default="surname_latin_normalized")
-    apply.add_argument("--revision", default=CANONICALIZATION_REVISION)
-    apply.add_argument("--provenance", default="accepted_variant_map")
+    apply.add_argument("--context", default="global")
+    apply.add_argument("--context-column")
+    apply.add_argument("--provenance", default="anchored_reconciliation")
+
+    rajasthan = commands.add_parser(
+        "evidence-rajasthan", help="build Rajasthan surname anchor evidence"
+    )
+    rajasthan.add_argument("input", type=_path)
+    rajasthan.add_argument("output", type=_path)
+    rajasthan.add_argument("--audit", type=_path)
+    rajasthan.add_argument("--batch-size", type=int, default=100_000)
+    rajasthan.set_defaults(handler=_rajasthan_evidence)
     return parser
 
 

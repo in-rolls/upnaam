@@ -8,6 +8,7 @@
 
 data-contracts
 assumptions
+canonicalization
 findings
 punjab-electors
 ```

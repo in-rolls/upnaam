@@ -123,11 +123,14 @@ def test_build_punjab_artifact_preserves_every_source_row(tmp_path: Path) -> Non
     assert frame.loc[1, "surname_latin_normalized"] == "raj"
     assert frame.loc[1, "surname_canonical"] == "raj"
     assert frame.loc[1, "canonicalization_status"] == "identity_unmapped"
+    assert frame.loc[1, "canonicalization_reason"] == "no_reconciliation_decision"
     assert frame.loc[2, "surname_raw"] == "ਸਿੰਘ"
     assert pd.isna(frame.loc[2, "surname_latin_normalized"])
     assert frame.loc[2, "canonicalization_status"] == "normalization_unavailable"
+    assert frame.loc[2, "canonicalization_reason"] == "normalization_unavailable"
     assert frame.loc[3, "abstention_reason"] == "single-token-name"
     assert frame.loc[3, "canonicalization_status"] == "not_applicable"
+    assert frame.loc[3, "canonicalization_reason"] == "surname_not_selected"
     assert pq.ParquetFile(output).schema_arrow == PUNJAB_OUTPUT_SCHEMA
 
     summary = tmp_path / "summary.csv"

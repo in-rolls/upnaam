@@ -1,13 +1,8 @@
 import pytest
 
-from upnaam.canonicalization import (
-    EvidenceTier,
-    VariantEvidence,
-    align_names,
-    character_edits,
-    cluster_variants,
-    summarize_edits,
-)
+from upnaam.canonicalization import align_names, character_edits, summarize_edits
+from upnaam.canonicalization.clustering import cluster_variants
+from upnaam.canonicalization.evidence import EvidenceTier, VariantEvidence
 
 
 def test_alignment_describes_exact_substitution_and_gap() -> None:

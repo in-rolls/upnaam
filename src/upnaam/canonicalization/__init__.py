@@ -1,34 +1,46 @@
-"""Evidence-backed canonicalization of normalized surname spellings."""
+"""Candidate generation and anchored surname reconciliation."""
 
 from upnaam.canonicalization.alignment import TokenAlignment, align_names
 from upnaam.canonicalization.candidates import (
     VariantCandidate,
     generate_variant_candidates,
 )
-from upnaam.canonicalization.clustering import VariantMapping, cluster_variants
 from upnaam.canonicalization.edits import (
     CharacterEdit,
     character_edits,
     summarize_edits,
 )
-from upnaam.canonicalization.evidence import EvidenceTier, VariantEvidence
 from upnaam.canonicalization.mapping import (
-    apply_canonical_map,
-    canonical_map_from_frame,
+    AppliedDecision,
+    apply_reconciliation,
+    reconciliation_index_from_frame,
+)
+from upnaam.canonicalization.reconciliation import (
+    RECONCILIATION_REVISION,
+    AnchorEvidence,
+    RankedAnchorCandidate,
+    ReconciliationDecision,
+    ReconciliationStatus,
+    decide_anchor_candidates,
+    rank_anchor_candidates,
 )
 
 __all__ = [
+    "RECONCILIATION_REVISION",
+    "AnchorEvidence",
+    "AppliedDecision",
     "CharacterEdit",
-    "EvidenceTier",
+    "RankedAnchorCandidate",
+    "ReconciliationDecision",
+    "ReconciliationStatus",
     "TokenAlignment",
     "VariantCandidate",
-    "VariantEvidence",
-    "VariantMapping",
     "align_names",
-    "apply_canonical_map",
-    "canonical_map_from_frame",
+    "apply_reconciliation",
     "character_edits",
-    "cluster_variants",
+    "decide_anchor_candidates",
     "generate_variant_candidates",
+    "rank_anchor_candidates",
+    "reconciliation_index_from_frame",
     "summarize_edits",
 ]

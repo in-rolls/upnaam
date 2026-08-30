@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from enum import StrEnum
 
-CANONICALIZATION_REVISION = "canonicalization-v1"
+CANONICALIZATION_REVISION = "reconciliation-v1"
 
 
 class CanonicalizationStatus(StrEnum):
@@ -13,6 +13,7 @@ class CanonicalizationStatus(StrEnum):
     IDENTITY_UNMAPPED = "identity_unmapped"
     CANONICAL_IDENTITY = "canonical_identity"
     VARIANT_MAPPED = "variant_mapped"
+    AMBIGUOUS = "ambiguous"
     NORMALIZATION_UNAVAILABLE = "normalization_unavailable"
     NOT_APPLICABLE = "not_applicable"
 
@@ -24,6 +25,7 @@ SURNAME_REPRESENTATION_COLUMNS = (
     "surname_latin_normalized",
     "surname_canonical",
     "canonicalization_status",
+    "canonicalization_reason",
     "canonicalization_provenance",
     "canonicalization_revision",
 )

@@ -101,6 +101,7 @@ PUNJAB_OUTPUT_SCHEMA = pa.schema(
         ("surname_latin_normalized", pa.string()),
         ("surname_canonical", pa.string()),
         ("canonicalization_status", pa.string()),
+        ("canonicalization_reason", pa.string()),
         ("canonicalization_provenance", pa.string()),
         ("canonicalization_revision", pa.string()),
         ("surname_position", pa.string()),
@@ -380,6 +381,18 @@ def _output_frame(
                         CanonicalizationStatus.NOT_APPLICABLE.value
                         if result.abstained
                         else CanonicalizationStatus.NORMALIZATION_UNAVAILABLE.value
+                    )
+                )
+                for result in results
+            ],
+            "canonicalization_reason": [
+                (
+                    "no_reconciliation_decision"
+                    if result.surname_latin_normalized is not None
+                    else (
+                        "surname_not_selected"
+                        if result.abstained
+                        else "normalization_unavailable"
                     )
                 )
                 for result in results

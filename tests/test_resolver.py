@@ -20,6 +20,7 @@ def test_resolve_electors_preserves_rows_and_applies_state_policy() -> None:
     assert result.loc[0, "surname_latin_normalized"] == "devi"
     assert result.loc[0, "surname_canonical"] == "devi"
     assert result.loc[0, "canonicalization_status"] == "identity_unmapped"
+    assert result.loc[0, "canonicalization_reason"] == "no_reconciliation_decision"
     assert result.loc[0, "surname_position"] == "last"
     assert result.loc[0, "surname_provenance"] == "written_final_token"
     assert result.loc[1, "surname_canonical"] == "patil"
@@ -27,6 +28,7 @@ def test_resolve_electors_preserves_rows_and_applies_state_policy() -> None:
     assert result.loc[1, "surname_provenance"] == "written_first_token"
     assert result.loc[2, "abstention_reason"] == "single-token-name"
     assert result.loc[2, "canonicalization_status"] == "not_applicable"
+    assert result.loc[2, "canonicalization_reason"] == "surname_not_selected"
     assert result.loc[3, "abstention_reason"] == "unsupported-state"
     assert result.loc[3, "abstained"]
     assert set(result["normalization_revision"]) == {"normalization-v1"}
@@ -42,6 +44,7 @@ def test_resolve_electors_preserves_raw_devanagari_token() -> None:
     assert result.loc[0, "surname_source_normalized"] == "यादव"
     assert pd.isna(result.loc[0, "surname_canonical"])
     assert result.loc[0, "canonicalization_status"] == "normalization_unavailable"
+    assert result.loc[0, "canonicalization_reason"] == "normalization_unavailable"
 
 
 @pytest.mark.parametrize(

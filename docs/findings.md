@@ -61,7 +61,26 @@ spacing: examples include `मोहनसिंह`/`मोहन सिंह`
 because the upstream person link requires equality of the complete name
 skeleton. Consequently the current family-surname candidate count is zero.
 
-After excluding alignments with token gaps, the accepted links supply 104,215
-eligible substitution operations and 8,259 variant mappings at the declared
-support and similarity thresholds. Those counts describe evidence volume; they
-are not a precision estimate.
+The earlier complete-link research comparator contains 104,215 eligible
+substitution operations and 8,259 node-to-representative assignments. Those
+assignments are no longer the canonicalization output because a global
+partition suppresses one-to-many ambiguity.
+
+The surname-only anchored pilot starts from all 1,004,418 accepted Rajasthan
+T1/T2 links. Both sides have a final eligible token for 257,509 links, including
+230,716 exact token pairs. After aggregation, 2,021 observed roll forms have
+2,771 anchor candidates. At the recorded support threshold of 2 and normalized
+similarity threshold of 0.75, the decisions are:
+
+| Decision | Observed forms |
+| --- | ---: |
+| Accepted identity | 608 |
+| Accepted variant | 93 |
+| Ambiguous | 114 |
+| Unresolved | 1,206 |
+
+These are operating outcomes, not precision estimates. In particular, the
+accepted links are selected on complete-name skeleton equality, and the
+ration-side token is a provisional anchor rather than a hand-adjudicated gold
+spelling. The 114 ambiguous forms demonstrate why candidate rankings are kept
+separate from decisions.

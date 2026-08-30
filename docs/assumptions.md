@@ -90,30 +90,31 @@ The surname representations are separate fields. `surname_raw` is the exact
 selected substring; `surname_source_normalized` is its same-script comparison
 form; `surname_latin_raw` is an exact source or validated aligned Latin token;
 `surname_latin_normalized` is a deterministic ASCII comparison form; and
-`surname_canonical` is the result of applying an accepted variant map. No
-earlier representation is overwritten.
+`surname_canonical` is the result of an ambiguity-preserving anchored
+reconciliation. No earlier representation is overwritten.
 
 Edit similarity and evidence play different roles:
 
-- Token substitutions are learned only from non-exact Rajasthan T2 links whose
-  token alignments contain no gaps. A spacing difference such as
-  `मोहनसिंह`/`मोहन सिंह` is not spelling-variant evidence.
-- Levenshtein distance proposes candidate pairs. String similarity alone does
-  not create an accepted variant edge.
-- The current Rajasthan research artifact requires at least two accepted linked
-  pairs and normalized Levenshtein similarity of at least 0.75. Those are
-  explicit artifact parameters, not universal linguistic thresholds.
-- Clusters use complete-link direct evidence. `A-B` and `B-C` do not merge all
-  three unless `A-C` also has an accepted edge.
-- Canonical selection uses explicit preferred-spelling support first, then
-  medoid distance, optional corpus frequency, and a deterministic lexical
-  tie-break.
-- A token absent from the accepted map remains unchanged, with
-  `canonicalization_status = identity_unmapped`. A missing Latin comparison
-  form is `normalization_unavailable`; it is not treated as an abstention from
-  written-surname selection.
+- The Rajasthan pilot selects the final eligible Devanagari token independently
+  on both sides of an existing accepted T1/T2 link. The ration spelling is a
+  provisional anchor, not a gold label.
+- Levenshtein similarity is an eligibility feature. String similarity alone
+  does not supply the linked-record evidence or decide the canonical anchor.
+- A candidate currently requires aggregate support of at least two and
+  normalized Levenshtein similarity of at least 0.75. Both gates are stored in
+  the artifact and are pilot assumptions, not universal linguistic thresholds.
+- Exactly one eligible anchor is accepted. Two or more eligible anchors produce
+  `ambiguous` and a null canonical surname, regardless of candidate rank.
+- With no eligible anchor or no decision row, the normalized token remains
+  unchanged with `canonicalization_status = identity_unmapped`. The reason
+  distinguishes `no_supported_anchor` from `no_reconciliation_decision`.
+- A missing comparison form is `normalization_unavailable`; it is not treated
+  as an abstention from written-surname selection.
 - Thresholds and resolution scores are not probabilities or calibrated
   confidence values.
+
+Complete-link clustering remains a research comparator for earlier variant
+diagnostics. It is not the canonicalization method or public package API.
 
 ## Not implemented in the baseline
 

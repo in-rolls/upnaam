@@ -53,8 +53,8 @@ The stage applies only the approved `resolver-v1` Punjab rule:
 9. Convert an aligned Latin token to a lowercase ASCII comparison form with
    Unicode compatibility decomposition and combining-mark removal. For
    example, `Rāj` becomes `raj`. This is not cross-spelling canonicalization:
-   `Kanr` remains `kanr` unless a later variants stage supplies independent
-   evidence for a mapping.
+   `Kanr` remains `kanr` unless a later reconciliation stage supplies
+   independent evidence for one unambiguous anchor.
 
 This stage does not use the relative name, house number, sex, English name
 parsers, Levenshtein distance, household propagation, land records, ration
@@ -77,7 +77,8 @@ The main fields are:
 | `surname_latin_normalized` | Lowercase ASCII comparison form, when alignment succeeds |
 | `surname_canonical` | Current canonical form; initially identical to the Latin-normalized form |
 | `canonicalization_status` | `identity_unmapped`, `normalization_unavailable`, or `not_applicable` after surname abstention |
-| `canonicalization_provenance` | Null until an accepted variant map is applied |
+| `canonicalization_reason` | Initially `no_reconciliation_decision`, `normalization_unavailable`, or `surname_not_selected` |
+| `canonicalization_provenance` | Null until an anchored decision is applied |
 | `canonicalization_revision` | Canonicalization contract revision |
 | `surname_position` | `last` for a resolved native surname |
 | `surname_provenance` | `written_final_token` for a resolved native surname |

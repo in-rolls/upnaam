@@ -11,12 +11,10 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 from rapidfuzz.distance import Levenshtein
 
-from upnaam.canonicalization import (
-    VariantEvidence,
-    align_names,
-    cluster_variants,
-    summarize_edits,
-)
+from upnaam.canonicalization.alignment import align_names
+from upnaam.canonicalization.clustering import cluster_variants
+from upnaam.canonicalization.edits import summarize_edits
+from upnaam.canonicalization.evidence import VariantEvidence
 from upnaam.selection import extract_surname_candidates
 
 if TYPE_CHECKING:
