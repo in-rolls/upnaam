@@ -11,10 +11,13 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 from rapidfuzz.distance import Levenshtein
 
-from upnaam.alignment import align_names
-from upnaam.candidates import extract_surname_candidates
-from upnaam.clustering import VariantEvidence, cluster_variants
-from upnaam.edit_model import summarize_edits
+from upnaam.canonicalization import (
+    VariantEvidence,
+    align_names,
+    cluster_variants,
+    summarize_edits,
+)
+from upnaam.selection import extract_surname_candidates
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -259,6 +262,7 @@ def build_variant_table(
             "cluster_size": [item.cluster_size for item in mappings],
             "direct_support": [item.direct_support for item in mappings],
             "sources": [list(item.sources) for item in mappings],
+            "evidence_tiers": [list(item.evidence_tiers) for item in mappings],
             "min_support": min_support,
             "min_similarity": min_similarity,
         }
@@ -272,6 +276,7 @@ def build_variant_table(
                 ("cluster_size", pa.int64()),
                 ("direct_support", pa.int64()),
                 ("sources", pa.list_(pa.string())),
+                ("evidence_tiers", pa.list_(pa.string())),
                 ("min_support", pa.int64()),
                 ("min_similarity", pa.float64()),
             ]

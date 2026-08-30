@@ -12,3 +12,8 @@ All notable changes to Upnaam will be documented here.
 - Add full weighted diagnostics for Bihar, Rajasthan, Maharashtra, and Punjab.
 - Add a row-preserving Punjab elector resolver using the validated Indicate
   native/Latin transcription artifact.
+- Replace the numbered research scripts with a package-oriented CLI.
+- Separate raw, source-normalized, Latin-normalized, and canonical surname
+  representations with explicit mapping status and provenance.
+- Add evidence-typed candidate generation, complete-link clustering, and
+  canonical-map application as reusable generic components.

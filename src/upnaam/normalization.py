@@ -48,6 +48,25 @@ def normalize_name(value: object) -> str | None:
     return normalized or None
 
 
+def normalize_latin_token(value: object) -> str | None:
+    """Create a conservative ASCII comparison form for one Latin token.
+
+    This removes combining marks and non-ASCII characters; it does not infer
+    missing letters, transliterate another script, or merge spelling variants.
+    """
+    if not isinstance(value, str):
+        return None
+    decomposed = unicodedata.normalize("NFKD", value)
+    without_marks = "".join(
+        character for character in decomposed if not unicodedata.combining(character)
+    )
+    ascii_value = without_marks.encode("ascii", errors="ignore").decode("ascii")
+    normalized = normalize_name(ascii_value)
+    if normalized is None or not any(character.isalpha() for character in normalized):
+        return None
+    return normalized
+
+
 def tokenize_name(value: object) -> tuple[NameToken, ...]:
     """Tokenize a name while retaining raw substrings and source offsets.
 

@@ -60,13 +60,13 @@ one unique raw name pair per accepted land account.
 - Normalization is deterministic and does not transliterate.
 - Recorded surnames are substrings of the elector's own raw name.
 - Family surnames require a named external evidence record.
-- Every stage writes its input paths, hashes, row counts, and configuration to
-  a manifest.
+- Dataset adapters write input hashes, row counts, and configuration to a
+  manifest when a reproducible restricted-data build is run.
 - Every recorded-surname row carries the immutable `resolver_revision` that
   selected its state-position rule.
 - A native surname can remain resolved when its independent Latin token cannot
-  be aligned; the Latin and ASCII fields stay null and carry an explicit
-  transliteration status.
+  be aligned; the Latin-normalized and canonical fields stay null and carry an
+  explicit transliteration and canonicalization status.
 - `surname_provenance` is `written_first_token` or `written_final_token` for a
   positional selection and names an external source only for a documented
   linked-record operation.
@@ -79,10 +79,16 @@ stripped; `name` may be missing, in which case the resolver abstains. Extra
 input columns are accepted but ignored by `resolver-v1`.
 
 The output preserves row count, order, identifier, state, and raw name. It adds
-the nullable normalized recorded-surname token, its exact raw substring,
-selected position, provenance, abstention fields, `normalization_revision`,
-and `resolver_revision`. The interface does not infer family surnames,
-households, token types, caste, or a calibrated confidence score.
+the exact selected substring; separate source-normalized, Latin-raw,
+Latin-normalized, and canonical forms; canonicalization status and provenance;
+selected position; abstention fields; and all three transformation revisions.
+The interface does not infer family surnames, households, token types, caste,
+or a calibrated confidence score.
+
+The generic resolver treats a selected Roman-script source token as both the
+Latin raw token and the input to Latin normalization. It does not transliterate
+non-Latin scripts. Source adapters such as Punjab may supply an independently
+validated aligned Latin token.
 
 ## Resolver policy
 

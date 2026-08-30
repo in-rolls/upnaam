@@ -6,9 +6,13 @@ from typing import TYPE_CHECKING, Any, cast
 
 import pandas as pd
 
-from upnaam.candidates import extract_surname_candidates
-from upnaam.normalization import NORMALIZATION_REVISION
+from upnaam.normalization import (
+    NORMALIZATION_REVISION,
+    normalize_latin_token,
+)
 from upnaam.policy import ResolverPolicy, load_default_resolver_policy
+from upnaam.schema import CANONICALIZATION_REVISION, CanonicalizationStatus
+from upnaam.selection import extract_surname_candidates
 
 if TYPE_CHECKING:
     from upnaam.normalization import NameToken
@@ -18,8 +22,14 @@ ELECTOR_OUTPUT_COLUMNS = (
     "elector_id",
     "state",
     "name_raw",
-    "surname",
     "surname_raw",
+    "surname_source_normalized",
+    "surname_latin_raw",
+    "surname_latin_normalized",
+    "surname_canonical",
+    "canonicalization_status",
+    "canonicalization_provenance",
+    "canonicalization_revision",
     "surname_position",
     "surname_provenance",
     "abstained",
@@ -95,13 +105,35 @@ def resolve_electors(
             )
             reason = None
         provenance_position = "final" if position == "last" else position
+        latin_normalized = (
+            normalize_latin_token(selected.raw) if selected is not None else None
+        )
+        canonicalization_status = (
+            CanonicalizationStatus.IDENTITY_UNMAPPED.value
+            if latin_normalized is not None
+            else (
+                CanonicalizationStatus.NORMALIZATION_UNAVAILABLE.value
+                if selected is not None
+                else CanonicalizationStatus.NOT_APPLICABLE.value
+            )
+        )
         output.append(
             {
                 "elector_id": elector_id,
                 "state": state,
                 "name_raw": name if isinstance(name, str) else None,
-                "surname": selected.normalized if selected is not None else None,
                 "surname_raw": selected.raw if selected is not None else None,
+                "surname_source_normalized": (
+                    selected.normalized if selected is not None else None
+                ),
+                "surname_latin_raw": (
+                    selected.raw if selected is not None and latin_normalized else None
+                ),
+                "surname_latin_normalized": latin_normalized,
+                "surname_canonical": latin_normalized,
+                "canonicalization_status": canonicalization_status,
+                "canonicalization_provenance": None,
+                "canonicalization_revision": CANONICALIZATION_REVISION,
                 "surname_position": position if selected is not None else None,
                 "surname_provenance": (
                     f"written_{provenance_position}_token"

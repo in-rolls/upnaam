@@ -1,6 +1,6 @@
 import pytest
 
-from upnaam.candidates import extract_surname_candidates
+from upnaam.selection import extract_surname_candidates
 
 
 def test_final_eligible_token_is_baseline_surname() -> None:

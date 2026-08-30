@@ -17,6 +17,9 @@ dependencies = [
     "rapidfuzz>=3.14",
 ]
 
+[project.scripts]
+upnaam = "upnaam.cli:main"
+
 [project.urls]
 Repository = "https://github.com/in-rolls/upnaam"
 Issues = "https://github.com/in-rolls/upnaam/issues"
@@ -43,7 +46,7 @@ source = ["src/upnaam"]
 branch = true
 
 [tool.pyright]
-include = ["src", "scripts"]
+include = ["src"]
 typeCheckingMode = "standard"
 
 [tool.ruff]

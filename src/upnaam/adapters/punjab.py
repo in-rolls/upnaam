@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import unicodedata
 from collections import Counter, defaultdict
 from csv import DictWriter
 from dataclasses import dataclass
@@ -14,8 +13,13 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from upnaam.candidates import extract_surname_candidates
-from upnaam.normalization import NORMALIZATION_REVISION, normalize_name, tokenize_name
+from upnaam.normalization import (
+    NORMALIZATION_REVISION,
+    normalize_latin_token,
+    tokenize_name,
+)
+from upnaam.schema import CANONICALIZATION_REVISION, CanonicalizationStatus
+from upnaam.selection import extract_surname_candidates
 
 if TYPE_CHECKING:
     from collections.abc import Iterator, Mapping
@@ -91,10 +95,14 @@ PUNJAB_OUTPUT_SCHEMA = pa.schema(
         ("main_town_latin_raw", pa.string()),
         ("district_native_raw", pa.string()),
         ("district_latin_raw", pa.string()),
-        ("surname_native", pa.string()),
-        ("surname_native_raw", pa.string()),
+        ("surname_raw", pa.string()),
+        ("surname_source_normalized", pa.string()),
         ("surname_latin_raw", pa.string()),
-        ("surname", pa.string()),
+        ("surname_latin_normalized", pa.string()),
+        ("surname_canonical", pa.string()),
+        ("canonicalization_status", pa.string()),
+        ("canonicalization_provenance", pa.string()),
+        ("canonicalization_revision", pa.string()),
         ("surname_position", pa.string()),
         ("surname_provenance", pa.string()),
         ("abstained", pa.bool_()),
@@ -111,10 +119,10 @@ PUNJAB_OUTPUT_SCHEMA = pa.schema(
 class PunjabSurnameResult:
     """Resolution of a native/Latin name pair under the Punjab baseline."""
 
-    surname_native: str | None
-    surname_native_raw: str | None
+    surname_raw: str | None
+    surname_source_normalized: str | None
     surname_latin_raw: str | None
-    surname: str | None
+    surname_latin_normalized: str | None
     abstained: bool
     abstention_reason: str | None
     transliteration_status: str
@@ -156,27 +164,6 @@ class PunjabArtifactReport:
         }
 
 
-def normalize_latin_token(value: str) -> str | None:
-    """Create the lowercase ASCII comparison form for a Latin surname token.
-
-    Args:
-        value: One Latin-script token selected from the Indicate artifact.
-
-    Returns:
-        A case-folded ASCII token with combining marks removed, or ``None`` if
-        no alphabetic characters survive.
-    """
-    decomposed = unicodedata.normalize("NFKD", value)
-    without_marks = "".join(
-        character for character in decomposed if not unicodedata.combining(character)
-    )
-    ascii_value = without_marks.encode("ascii", errors="ignore").decode("ascii")
-    normalized = normalize_name(ascii_value)
-    if normalized is None or not any(character.isalpha() for character in normalized):
-        return None
-    return normalized
-
-
 def resolve_punjab_name_pair(
     native_name: object, latin_name: object
 ) -> PunjabSurnameResult:
@@ -196,10 +183,10 @@ def resolve_punjab_name_pair(
     candidates = extract_surname_candidates(native_name)
     if candidates.abstained:
         return PunjabSurnameResult(
-            surname_native=None,
-            surname_native_raw=None,
+            surname_raw=None,
+            surname_source_normalized=None,
             surname_latin_raw=None,
-            surname=None,
+            surname_latin_normalized=None,
             abstained=True,
             abstention_reason=candidates.abstention_reason,
             transliteration_status="no-surname-selected",
@@ -209,10 +196,10 @@ def resolve_punjab_name_pair(
     latin_tokens = tokenize_name(latin_name)
     if len(latin_tokens) != len(candidates.tokens):
         return PunjabSurnameResult(
-            surname_native=selected.normalized,
-            surname_native_raw=selected.raw,
+            surname_raw=selected.raw,
+            surname_source_normalized=selected.normalized,
             surname_latin_raw=None,
-            surname=None,
+            surname_latin_normalized=None,
             abstained=False,
             abstention_reason=None,
             transliteration_status="token-count-mismatch",
@@ -221,19 +208,19 @@ def resolve_punjab_name_pair(
     normalized_latin = normalize_latin_token(latin_token.raw)
     if latin_token.letter_count < 2 or normalized_latin is None:
         return PunjabSurnameResult(
-            surname_native=selected.normalized,
-            surname_native_raw=selected.raw,
+            surname_raw=selected.raw,
+            surname_source_normalized=selected.normalized,
             surname_latin_raw=None,
-            surname=None,
+            surname_latin_normalized=None,
             abstained=False,
             abstention_reason=None,
             transliteration_status="ineligible-latin-token",
         )
     return PunjabSurnameResult(
-        surname_native=selected.normalized,
-        surname_native_raw=selected.raw,
+        surname_raw=selected.raw,
+        surname_source_normalized=selected.normalized,
         surname_latin_raw=latin_token.raw,
-        surname=normalized_latin,
+        surname_latin_normalized=normalized_latin,
         abstained=False,
         abstention_reason=None,
         transliteration_status="aligned",
@@ -313,7 +300,9 @@ def _update_strata(
         counter = counts[str(label)]
         counter["rows"] += len(group)
         counter["native_resolved"] += int((~group["abstained"]).sum())
-        counter["ascii_resolved"] += int(group["surname"].notna().sum())
+        counter["ascii_resolved"] += int(
+            group["surname_latin_normalized"].notna().sum()
+        )
         counter["abstained"] += int(group["abstained"].sum())
         for status, value in group["transliteration_status"].value_counts().items():
             counter[f"transliteration_{status}"] += int(value)
@@ -372,10 +361,31 @@ def _output_frame(
             "district_latin_raw": _nullable_string(
                 _column(companion, "district_transliterated")
             ),
-            "surname_native": [result.surname_native for result in results],
-            "surname_native_raw": [result.surname_native_raw for result in results],
+            "surname_raw": [result.surname_raw for result in results],
+            "surname_source_normalized": [
+                result.surname_source_normalized for result in results
+            ],
             "surname_latin_raw": [result.surname_latin_raw for result in results],
-            "surname": [result.surname for result in results],
+            "surname_latin_normalized": [
+                result.surname_latin_normalized for result in results
+            ],
+            "surname_canonical": [
+                result.surname_latin_normalized for result in results
+            ],
+            "canonicalization_status": [
+                (
+                    CanonicalizationStatus.IDENTITY_UNMAPPED.value
+                    if result.surname_latin_normalized is not None
+                    else (
+                        CanonicalizationStatus.NOT_APPLICABLE.value
+                        if result.abstained
+                        else CanonicalizationStatus.NORMALIZATION_UNAVAILABLE.value
+                    )
+                )
+                for result in results
+            ],
+            "canonicalization_provenance": None,
+            "canonicalization_revision": CANONICALIZATION_REVISION,
             "surname_position": [
                 None if result.abstained else "last" for result in results
             ],
@@ -467,7 +477,7 @@ def build_punjab_elector_artifact(
                 value for value in frame["abstention_reason"] if isinstance(value, str)
             )
             transliteration_statuses.update(frame["transliteration_status"])
-            surname_counts.update(_column(frame, "surname").dropna())
+            surname_counts.update(_column(frame, "surname_canonical").dropna())
             _update_strata(by_sex, _column(raw, "sex"), frame)
             _update_strata(by_relationship, _column(raw, "relationship"), frame)
     except BaseException:

@@ -4,7 +4,7 @@ from pathlib import Path
 import pandas as pd
 import pyarrow.parquet as pq
 
-from upnaam.linked_stages import (
+from upnaam.research.linked import (
     align_link_table,
     build_variant_table,
     evaluate_outputs,

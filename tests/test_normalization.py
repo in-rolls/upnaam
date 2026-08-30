@@ -1,4 +1,4 @@
-from upnaam.normalization import normalize_name, tokenize_name
+from upnaam.normalization import normalize_latin_token, normalize_name, tokenize_name
 
 
 def test_normalize_name_is_conservative() -> None:
@@ -31,3 +31,9 @@ def test_zero_width_joiner_is_removed_without_splitting_word() -> None:
     tokens = tokenize_name("मिस्\u200dत्री")
     assert len(tokens) == 1
     assert tokens[0].normalized == "मिस्त्री"
+
+
+def test_latin_normalization_is_not_transliteration_or_canonicalization() -> None:
+    assert normalize_latin_token("Rāj") == "raj"
+    assert normalize_latin_token("Jadhab") == "jadhab"
+    assert normalize_latin_token("ਯਾਦਵ") is None

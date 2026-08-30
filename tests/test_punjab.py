@@ -1,18 +1,20 @@
+import json
 from pathlib import Path
 
 import pandas as pd
 import pyarrow.parquet as pq
 import pytest
 
-from upnaam.punjab import (
+from upnaam.adapters.punjab import (
     PUNJAB_OUTPUT_SCHEMA,
     RAW_COLUMNS,
     TRANSLITERATED_NATIVE_COLUMNS,
     build_punjab_elector_artifact,
-    normalize_latin_token,
     resolve_punjab_name_pair,
     write_punjab_summary,
 )
+from upnaam.cli import main
+from upnaam.normalization import normalize_latin_token
 
 
 def _roll_frame() -> pd.DataFrame:
@@ -70,15 +72,16 @@ def test_normalize_latin_token_removes_diacritics() -> None:
 
 def test_resolve_punjab_name_pair_preserves_native_on_alignment_failure() -> None:
     resolved = resolve_punjab_name_pair("ਰਵਿ ਸ਼ਰਮਾ", "Ravi Sharma")
-    assert resolved.surname_native_raw == "ਸ਼ਰਮਾ"
+    assert resolved.surname_raw == "ਸ਼ਰਮਾ"
+    assert resolved.surname_source_normalized == "ਸ਼ਰਮਾ"
     assert resolved.surname_latin_raw == "Sharma"
-    assert resolved.surname == "sharma"
+    assert resolved.surname_latin_normalized == "sharma"
     assert resolved.transliteration_status == "aligned"
 
     mismatch = resolve_punjab_name_pair("ਹਰਪ੍ਰੀਤ ਸਿੰਘ", "Harpreet Kumar Singh")
-    assert mismatch.surname_native_raw == "ਸਿੰਘ"
+    assert mismatch.surname_raw == "ਸਿੰਘ"
     assert mismatch.surname_latin_raw is None
-    assert mismatch.surname is None
+    assert mismatch.surname_latin_normalized is None
     assert not mismatch.abstained
     assert mismatch.transliteration_status == "token-count-mismatch"
 
@@ -114,12 +117,17 @@ def test_build_punjab_artifact_preserves_every_source_row(tmp_path: Path) -> Non
         "muegdt-v25-punjab:3",
     ]
     assert frame.loc[0, "source_elector_id"] == frame.loc[1, "source_elector_id"]
-    assert frame.loc[0, "surname_native_raw"] == "ਸ਼ਰਮਾ"
+    assert frame.loc[0, "surname_raw"] == "ਸ਼ਰਮਾ"
+    assert frame.loc[0, "surname_source_normalized"] == "ਸ਼ਰਮਾ"
     assert frame.loc[1, "surname_latin_raw"] == "Rāj"
-    assert frame.loc[1, "surname"] == "raj"
-    assert frame.loc[2, "surname_native_raw"] == "ਸਿੰਘ"
-    assert pd.isna(frame.loc[2, "surname"])
+    assert frame.loc[1, "surname_latin_normalized"] == "raj"
+    assert frame.loc[1, "surname_canonical"] == "raj"
+    assert frame.loc[1, "canonicalization_status"] == "identity_unmapped"
+    assert frame.loc[2, "surname_raw"] == "ਸਿੰਘ"
+    assert pd.isna(frame.loc[2, "surname_latin_normalized"])
+    assert frame.loc[2, "canonicalization_status"] == "normalization_unavailable"
     assert frame.loc[3, "abstention_reason"] == "single-token-name"
+    assert frame.loc[3, "canonicalization_status"] == "not_applicable"
     assert pq.ParquetFile(output).schema_arrow == PUNJAB_OUTPUT_SCHEMA
 
     summary = tmp_path / "summary.csv"
@@ -128,6 +136,29 @@ def test_build_punjab_artifact_preserves_every_source_row(tmp_path: Path) -> Non
     assert summary_frame.loc[0, "rows"] == 4
     assert summary_frame.loc[1, "value"] == "male"
     assert summary_frame.loc[1, "native_resolved"] == 3
+
+
+def test_punjab_cli_writes_optional_audits(tmp_path: Path) -> None:
+    raw_path, transliteration_path, _ = _write_inputs(tmp_path)
+    output = tmp_path / "cli.parquet"
+    audit = tmp_path / "audit.json"
+    summary = tmp_path / "summary.csv"
+    main(
+        [
+            "resolve-punjab",
+            str(raw_path),
+            str(transliteration_path),
+            str(output),
+            "--audit",
+            str(audit),
+            "--summary",
+            str(summary),
+            "--batch-size",
+            "2",
+        ]
+    )
+    assert json.loads(audit.read_text())["rows"] == 4
+    assert pd.read_csv(summary).loc[0, "rows"] == 4
 
 
 def test_build_punjab_artifact_rejects_native_mismatch(tmp_path: Path) -> None:

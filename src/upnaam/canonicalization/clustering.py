@@ -4,22 +4,12 @@ from __future__ import annotations
 
 from collections import Counter, defaultdict
 from dataclasses import dataclass
-from functools import partial
 from typing import TYPE_CHECKING
 
+from upnaam.canonicalization.evidence import EvidenceTier, VariantEvidence
+
 if TYPE_CHECKING:
-    from collections.abc import Iterable
-
-
-@dataclass(frozen=True, slots=True)
-class VariantEvidence:
-    """Aggregated evidence that two observed tokens are variants."""
-
-    left: str
-    right: str
-    support: int
-    similarity: float
-    source: str
+    from collections.abc import Iterable, Mapping
 
 
 @dataclass(frozen=True, slots=True)
@@ -31,21 +21,23 @@ class VariantMapping:
     cluster_size: int
     direct_support: int
     sources: tuple[str, ...]
+    evidence_tiers: tuple[str, ...]
 
 
-def _medoid_key(
+def _canonical_key(
     token: str,
     *,
     members: frozenset[str],
     direct: dict[frozenset[str], VariantEvidence],
-    frequency: Counter[str],
-) -> tuple[float, int, str]:
+    frequencies: Mapping[str, int],
+    preference: Counter[str],
+) -> tuple[int, float, int, str]:
     distance = sum(
         1 - direct[frozenset((token, other))].similarity
         for other in members
         if other != token
     )
-    return (distance, -frequency[token], token)
+    return (-preference[token], distance, -frequencies.get(token, 0), token)
 
 
 def cluster_variants(
@@ -53,6 +45,8 @@ def cluster_variants(
     *,
     min_support: int = 2,
     min_similarity: float = 0.75,
+    frequencies: Mapping[str, int] | None = None,
+    allow_string_only: bool = False,
 ) -> tuple[VariantMapping, ...]:
     """Cluster tokens only when every cross-cluster pair has direct evidence.
 
@@ -60,6 +54,8 @@ def cluster_variants(
         evidence: Aggregated linked-pair evidence.
         min_support: Minimum accepted links for a direct compatibility edge.
         min_similarity: Minimum normalized Levenshtein similarity.
+        frequencies: Optional corpus counts used only to break medoid ties.
+        allow_string_only: Whether edit similarity alone may create edges.
 
     Returns:
         Deterministic mappings. Complete-link compatibility prevents a chain
@@ -75,26 +71,32 @@ def cluster_variants(
     accepted = [
         item
         for item in evidence
-        if item.left != item.right
+        if item.accepted
+        and item.left != item.right
         and item.support >= min_support
         and item.similarity >= min_similarity
+        and (allow_string_only or item.evidence_tier is not EvidenceTier.STRING_ONLY)
     ]
     direct: dict[frozenset[str], VariantEvidence] = {}
-    frequency: Counter[str] = Counter()
     token_sources: defaultdict[str, set[str]] = defaultdict(set)
+    token_tiers: defaultdict[str, set[str]] = defaultdict(set)
+    preference: Counter[str] = Counter()
     for item in accepted:
-        key = frozenset((item.left, item.right))
+        key = item.pair
         previous = direct.get(key)
         if previous is None or (item.support, item.similarity) > (
             previous.support,
             previous.similarity,
         ):
             direct[key] = item
-        frequency[item.left] += item.support
-        frequency[item.right] += item.support
         token_sources[item.left].add(item.source)
         token_sources[item.right].add(item.source)
-    clusters: list[set[str]] = [{token} for token in sorted(frequency)]
+        token_tiers[item.left].add(item.evidence_tier.value)
+        token_tiers[item.right].add(item.evidence_tier.value)
+        if item.preferred is not None:
+            preference[item.preferred] += item.support
+    tokens = sorted({token for item in accepted for token in (item.left, item.right)})
+    clusters: list[set[str]] = [{token} for token in tokens]
     for item in sorted(
         direct.values(),
         key=lambda value: (-value.support, -value.similarity, value.left, value.right),
@@ -114,10 +116,16 @@ def cluster_variants(
     mappings: list[VariantMapping] = []
     for cluster in clusters:
         members = frozenset(cluster)
-        medoid_key = partial(
-            _medoid_key, members=members, direct=direct, frequency=frequency
+        canonical = min(
+            cluster,
+            key=lambda token: _canonical_key(
+                token,
+                members=members,
+                direct=direct,
+                frequencies=frequencies or {},
+                preference=preference,
+            ),
         )
-        canonical = min(cluster, key=medoid_key)
         for token in sorted(cluster):
             support = sum(
                 direct[frozenset((token, other))].support
@@ -131,6 +139,7 @@ def cluster_variants(
                     cluster_size=len(cluster),
                     direct_support=support,
                     sources=tuple(sorted(token_sources[token])),
+                    evidence_tiers=tuple(sorted(token_tiers[token])),
                 )
             )
     return tuple(mappings)

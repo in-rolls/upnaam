@@ -1,6 +1,6 @@
 # Punjab elector artifact
 
-Punjab is Upnaam's first complete person-level roll dataset. Stage 10 combines
+Punjab is Upnaam's first complete person-level roll dataset. The Punjab adapter combines
 the restricted 2018 Punjab electoral-roll file from Dataverse dataset version
 25.0 with the locally available Indicate transcription artifact. It emits one
 row for every one of the 19,119,006 source rows; it does not deduplicate the
@@ -17,7 +17,7 @@ file are not used: 12,003,070 of its `elector_name_t13n` values contain
 Malayalam characters and are not credible Punjabi-to-Latin transcriptions.
 
 The replacement is Indicate's local
-`punjab_transliteration_subset.parquet`, which has 19,119,006 rows. Stage 10
+`punjab_transliteration_subset.parquet`, which has 19,119,006 rows. The adapter
 joins the files by zero-based source-row order only after verifying exact
 equality of all 11 repeated native fields in each batch:
 
@@ -30,7 +30,7 @@ Any row-count or native-field disagreement fails the stage. Row order is a
 validated source contract here, not a general-purpose linkage method.
 
 The source `id` is not an elector key: 99,261 non-unique ID values occur in
-2,130,443 rows, and 654,308 rows have a missing or blank ID. Stage 10 therefore
+2,130,443 rows, and 654,308 rows have a missing or blank ID. The adapter therefore
 defines `elector_id` as `muegdt-v25-punjab:<source_row>` and retains the source
 value separately as `source_elector_id`.
 
@@ -71,10 +71,14 @@ The main fields are:
 | `source_elector_id` | Original, non-unique and nullable roll ID |
 | `name_native_raw` | Exact Gurmukhi elector name |
 | `name_latin_raw` | Exact Indicate full-name transcription |
-| `surname_native_raw` | Exact selected Gurmukhi token |
-| `surname_native` | Conservatively normalized Gurmukhi token |
+| `surname_raw` | Exact selected Gurmukhi token |
+| `surname_source_normalized` | Conservatively normalized Gurmukhi token |
 | `surname_latin_raw` | Exact aligned Indicate token, including diacritics |
-| `surname` | Lowercase ASCII comparison form, when alignment succeeds |
+| `surname_latin_normalized` | Lowercase ASCII comparison form, when alignment succeeds |
+| `surname_canonical` | Current canonical form; initially identical to the Latin-normalized form |
+| `canonicalization_status` | `identity_unmapped`, `normalization_unavailable`, or `not_applicable` after surname abstention |
+| `canonicalization_provenance` | Null until an accepted variant map is applied |
+| `canonicalization_revision` | Canonicalization contract revision |
 | `surname_position` | `last` for a resolved native surname |
 | `surname_provenance` | `written_final_token` for a resolved native surname |
 | `abstained` | Whether native recorded-surname selection abstained |
@@ -82,14 +86,14 @@ The main fields are:
 | `transliteration_status` | `aligned`, `token-count-mismatch`, `ineligible-latin-token`, or `no-surname-selected` |
 
 Because native resolution and transliteration are separate decisions,
-`abstained = false` can coexist with a null `surname`: in that case
-`surname_native_raw` remains populated and `transliteration_status` explains
-why no ASCII value was asserted.
+`abstained = false` can coexist with a null `surname_canonical`: in that case
+`surname_raw` remains populated and `transliteration_status` explains why no
+Latin comparison value was asserted.
 
-`surname` makes exact grouping and downstream joins convenient but does not
-claim that OCR or spelling variants have been merged. For example, the source
-native token `ਕੰਰ` is transcribed as `Kanr` and remains `kanr`; Upnaam does not
-silently rewrite it to `kaur` in this stage.
+`surname_latin_normalized` makes exact grouping and downstream joins convenient
+but does not claim that OCR or spelling variants have been merged. For example,
+the source native token `ਕੰਰ` is transcribed as `Kanr` and remains `kanr`;
+Upnaam does not silently rewrite it to `kaur` in this adapter.
 
 The artifact also retains the source row's number, year, filename, part, house
 number, age, sex, relationship, relative name, and selected native/Latin
@@ -97,15 +101,14 @@ geography fields. Every row carries the normalization, resolver, and
 transliteration revision. The stage manifest records SHA-256 fingerprints for
 both inputs and all outputs.
 
-Run the stage with:
+Run the adapter with:
 
 ```console
-python scripts/10_resolve_punjab_electors.py
+upnaam resolve-punjab ROLL.csv.gz INDICATE.parquet OUTPUT.parquet \
+  --audit AUDIT.json --summary SUMMARY.csv
 ```
 
-All paths can be overridden on the command line. The defaults expect the
-restricted Dataverse file under `data/source/dataverse/` and the Indicate
-artifact in the sibling repository.
+All paths are explicit. No cloud query is made.
 
 ## First complete run
 
@@ -143,6 +146,6 @@ need to keep variant resolution separate:
 | `kumaari` | 137,682 |
 
 Of the `kanr` rows, 1,190,954 come directly from native `ਕੰਰ` transcribed as
-`Kanr`; only two come from `ਕੰੜ`. Stage 10 correctly preserves that observation
+`Kanr`; only two come from `ਕੰੜ`. The adapter correctly preserves that observation
 instead of declaring it equivalent to `kaur`. Establishing such equivalence is
 the job of the later evidence-backed variant stage.

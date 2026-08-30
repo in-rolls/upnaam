@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from upnaam.source_links import build_bihar_land_links, build_rajasthan_ration_links
+from upnaam.adapters.links import build_bihar_land_links, build_rajasthan_ration_links
 
 
 def test_bihar_adapter_marks_circular_links_ineligible(tmp_path: Path) -> None:

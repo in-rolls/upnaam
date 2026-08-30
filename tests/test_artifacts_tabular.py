@@ -12,14 +12,14 @@ from upnaam.artifacts import (
     source_fingerprint,
     write_manifest,
 )
-from upnaam.parquet import combine_parquet_files
 from upnaam.policy import ResolverPolicy
-from upnaam.tabular import (
+from upnaam.research.aggregate import (
     extract_candidate_table,
     load_variant_map,
     normalize_electoral_name_table,
     resolve_recorded_surnames,
 )
+from upnaam.research.parquet import combine_parquet_files
 
 
 def _write_name_csv(path: Path) -> None:

@@ -21,9 +21,10 @@ revision and rerun the evaluation. The machine-readable state policy is
 6. If at least two eligible tokens remain, select the eligible token at the
    state-configured position. If one remains, abstain with `single-token-name`.
    If none remains, abstain with `missing-name` or `no-eligible-token`.
-7. `Devi`, `Kumari`, `Kaur`, `Begum`, `Khatun`, `Singh`, and `Kumar` are not
-   pretyped or excluded. If one occupies the configured position, the resolver
-   selects it.
+7. `Devi`, `Rani`, `Kumari`, `Kaur`, `Begum`, `Khatun`, `Singh`, and `Kumar`
+   are not pretyped or excluded. If one occupies the configured position, the
+   resolver selects it as the written surname. A separate evidence stage may
+   later report a fuller family name without overwriting this result.
 8. The first and final eligible tokens remain competing positional candidates.
    A token appearing in a relative name is diagnostic support only; it does not
    override the configured position for an individual record.
@@ -83,16 +84,34 @@ matching; supported spelling canonicalization remains a separate stage.
   It therefore cannot reveal a genuinely additional ration-side surname.
   Under the accepted links, `family_surname` always abstains.
 
-## Edit evidence and variants
+## Normalization and canonicalization
+
+The surname representations are separate fields. `surname_raw` is the exact
+selected substring; `surname_source_normalized` is its same-script comparison
+form; `surname_latin_raw` is an exact source or validated aligned Latin token;
+`surname_latin_normalized` is a deterministic ASCII comparison form; and
+`surname_canonical` is the result of applying an accepted variant map. No
+earlier representation is overwritten.
+
+Edit similarity and evidence play different roles:
 
 - Token substitutions are learned only from non-exact Rajasthan T2 links whose
   token alignments contain no gaps. A spacing difference such as
   `मोहनसिंह`/`मोहन सिंह` is not spelling-variant evidence.
-- A variant edge requires at least two accepted linked pairs and normalized
-  Levenshtein similarity of at least 0.75.
+- Levenshtein distance proposes candidate pairs. String similarity alone does
+  not create an accepted variant edge.
+- The current Rajasthan research artifact requires at least two accepted linked
+  pairs and normalized Levenshtein similarity of at least 0.75. Those are
+  explicit artifact parameters, not universal linguistic thresholds.
 - Clusters use complete-link direct evidence. `A-B` and `B-C` do not merge all
   three unless `A-C` also has an accepted edge.
-- Canonical forms are cluster medoids with support and lexical tie-breaks.
+- Canonical selection uses explicit preferred-spelling support first, then
+  medoid distance, optional corpus frequency, and a deterministic lexical
+  tie-break.
+- A token absent from the accepted map remains unchanged, with
+  `canonicalization_status = identity_unmapped`. A missing Latin comparison
+  form is `normalization_unavailable`; it is not treated as an abstention from
+  written-surname selection.
 - Thresholds and resolution scores are not probabilities or calibrated
   confidence values.
 
