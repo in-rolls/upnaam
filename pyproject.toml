@@ -24,10 +24,21 @@ upnaam = "upnaam.cli:main"
 Repository = "https://github.com/in-rolls/upnaam"
 Issues = "https://github.com/in-rolls/upnaam/issues"
 
+[project.optional-dependencies]
+compressed-sqlite = [
+    "apsw>=3.53.4.0",
+    "indexed-gzip>=1.10.3",
+]
+
 [dependency-groups]
 dev = ["pandas-stubs>=2.2", "pre-commit>=4", "pydoclint>=0.7", "pyright>=1.1.390", "ruff>=0.14", {include-group = "test"}]
 docs = ["sphinx>=8", "furo", "myst-parser", "sphinx-copybutton", "py-canon @ git+https://github.com/gojiplus/py-canon@v1"]
-test = ["pytest>=8", "pytest-cov>=6"]
+test = [
+    "apsw>=3.53.4.0",
+    "indexed-gzip>=1.10.3",
+    "pytest>=8",
+    "pytest-cov>=6",
+]
 
 [tool.uv.build-backend]
 module-name = "upnaam"

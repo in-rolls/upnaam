@@ -9,6 +9,7 @@
 data-contracts
 assumptions
 canonicalization
+compressed-sqlite
 bihar-land-reference
 rajasthan-ration-reference
 findings

@@ -4,6 +4,8 @@ All notable changes to Upnaam will be documented here.
 
 ## Unreleased
 
+- Add manifest-verified, read-only targeted SQLite queries over multipart gzip
+  archives without materializing the decompressed database.
 - Define the recorded-surname and family-surname evidence contracts.
 - Add deterministic normalization and explicit surname candidate rules.
 - Reuse accepted Bihar land and Rajasthan ration-card links.

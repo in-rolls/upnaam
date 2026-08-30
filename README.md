@@ -131,6 +131,7 @@ Reusable technology lives in a small set of modules:
 | `normalization.py` | Lossless tokenization and deterministic comparison forms |
 | `selection.py` | Positional candidate generation and abstention |
 | `resolver.py` | State-policy selection and standard elector schema |
+| `compressed_sqlite.py` | Read-only targeted queries over multipart gzip-compressed SQLite |
 | `canonicalization/candidates.py` | Efficient edit-distance candidate generation |
 | `canonicalization/reconciliation.py` | Directed evidence, ranking, and ambiguity-preserving decisions |
 | `canonicalization/mapping.py` | Decision validation, application, status, reason, and provenance |
@@ -213,6 +214,11 @@ The complete join contract, dictionary, and recode ledger are in
 
 No hand-labeled surname corpus is required. Manual review, if performed, audits
 linkage precision rather than supplying surname labels.
+
+The Bihar ration SQLite source does not need to be expanded to its 56.7 GB
+logical size. Upnaam's generic compressed-SQLite adapter uses a reusable seek
+index to run targeted read-only queries directly over its two 3.30 GB archive
+parts. The access contract and example are in `docs/compressed-sqlite.md`.
 
 ## Privacy and non-goals
 
