@@ -83,10 +83,10 @@ matching; supported spelling canonicalization remains a separate stage.
   reference transcription. The reference surname is its final eligible token.
   A land/roll positional conflict is excluded; the land record may supply a
   reference when the roll positional rule abstains.
-- Bihar ration data is not yet used because no local bulk roster was found. The
-  `in-rolls/ration_bihar` repository points to a restricted Harvard Dataverse
-  SQLite corpus; it is the next separate source pass. Upnaam has made no portal
-  or GCP query.
+- Bihar ration data is read locally from the restricted Harvard Dataverse
+  SQLite corpus through the compressed-SQLite adapter. The complete pass emits
+  grouped written-final-token counts only; it makes no portal or GCP query and
+  retains no person or household identifiers.
 - A linked record can split a one-token roll name only when the linked final
   eligible token is an exact suffix of the untouched roll name and at least two
   alphabetic characters remain before it. This produces recorded-surname
@@ -126,6 +126,12 @@ Edit similarity and evidence play different roles:
 
 Complete-link clustering remains a research comparator for earlier variant
 diagnostics. It is not the canonicalization method or public package API.
+
+The Bihar land vocabulary applies the same literal final-token rule to one row
+per distinct official ryot full-name string. It is descriptive, not a
+canonical mapping. In particular, source notations such as `वगैरह` and `अन्य`
+remain selected until a separate versioned terminal-notation policy is
+approved.
 
 ## Not implemented in the baseline
 

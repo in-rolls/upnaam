@@ -78,6 +78,19 @@ the roll positional rule abstains. A positional disagreement is excluded, not
 resolved automatically. Full schema, recode, and selection contracts are in
 [Bihar land-record reference labels](bihar-land-reference.md).
 
+## Bihar land name vocabulary
+
+The separate full-state land vocabulary accepts a Parquet table with exactly
+one row per distinct nonnull `name_of_ryot` string, plus optional null rows. It
+rejects duplicate nonnull strings and non-text columns. Its counts represent
+distinct official full-name strings, not people, holdings, accounts, parcels,
+or record rows. It applies the literal Bihar final-token rule and preserves
+source notation such as `वगैरह`; no caste field is read.
+
+The typed grouped artifact and manifest record the raw-token mode, normalized
+token, distinct-full-name support, abstentions, source hash, and rule
+revisions. See [Bihar land surname counts](bihar-land-counts.md).
+
 ## Output invariants
 
 - Raw name strings are never overwritten.

@@ -136,6 +136,7 @@ Reusable technology lives in a small set of modules:
 | `canonicalization/reconciliation.py` | Directed evidence, ranking, and ambiguity-preserving decisions |
 | `canonicalization/mapping.py` | Decision validation, application, status, reason, and provenance |
 | `adapters/bihar.py` | Official-land reference labels on accepted Bihar links |
+| `adapters/bihar_land_counts.py` | Grouped final-token vocabulary from distinct official Bihar land names |
 | `adapters/bihar_ration.py` | Grouped written-surname counts from Bihar ration rosters |
 | `adapters/punjab.py` | Frozen Punjab roll plus validated Indicate alignment |
 | `adapters/rajasthan.py` | Surname-only evidence from accepted ration links |
@@ -152,6 +153,8 @@ upnaam select normalized.parquet candidates.parquet --name-column name
 upnaam resolve electors.parquet resolved.parquet
 upnaam labels-bihar-land bihar_links.parquet bihar_reference_labels.parquet \
   --manifest bihar_reference_manifest.json
+upnaam aggregate-bihar-land unique_hindi_names_uncleaned.parquet \
+  bihar_land_surname_counts.parquet --audit bihar_land_counts.json
 upnaam labels-rajasthan-ration rajasthan_links.parquet \
   rajasthan_reference_labels.parquet --manifest rajasthan_reference_manifest.json
 upnaam aggregate-bihar-ration bihar_ration_surname_counts.parquet \
@@ -217,6 +220,13 @@ The first run accepts 4,366 final-token reference labels, abstains on 20
 land-side single-token names, and excludes one land/roll positional conflict.
 The complete join contract, dictionary, and recode ledger are in
 `docs/bihar-land-reference.md`.
+
+The separate full-state Bihar land pass uses 3,197,303 distinct nonnull official
+ryot-name strings and selects 2,920,486 written final tokens. Its 144,081 token
+groups form a provisional official-record vocabulary, not person counts or
+canonical labels. The frequent terminal notation `वगैरह` demonstrates why
+official transcription quality does not by itself make every final token a
+surname. The complete contract is in `docs/bihar-land-counts.md`.
 
 No hand-labeled surname corpus is required. Manual review, if performed, audits
 linkage precision rather than supplying surname labels.

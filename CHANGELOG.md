@@ -10,6 +10,8 @@ All notable changes to Upnaam will be documented here.
   over Bihar ration-card rosters.
 - Add a generic edit-neighbor proposal command that records frequency and
   thresholds but cannot create canonical mappings.
+- Add grouped written-final-token counts over distinct official Bihar land-name
+  strings, including explicit terminal-notation diagnostics.
 - Define the recorded-surname and family-surname evidence contracts.
 - Add deterministic normalization and explicit surname candidate rules.
 - Reuse accepted Bihar land and Rajasthan ration-card links.

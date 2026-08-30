@@ -19,6 +19,12 @@ from upnaam.adapters.bihar import (
     write_bihar_reference_audit,
     write_bihar_reference_summary,
 )
+from upnaam.adapters.bihar_land_counts import (
+    BIHAR_LAND_AGGREGATE_REVISION,
+    BIHAR_LAND_PROVENANCE,
+    build_bihar_land_surname_counts,
+    write_bihar_land_aggregate_audit,
+)
 from upnaam.adapters.punjab import (
     build_punjab_elector_artifact,
     write_punjab_audit,
@@ -165,6 +171,42 @@ def _bihar_reference_labels(args: argparse.Namespace) -> None:
                 "linkage_basis": BIHAR_LINKAGE_BASIS,
                 "normalization_revision": NORMALIZATION_REVISION,
                 "reference_revision": BIHAR_REFERENCE_REVISION,
+                "surname_rule": "last_eligible_token",
+            },
+        )
+
+
+def _bihar_land_counts(args: argparse.Namespace) -> None:
+    report = build_bihar_land_surname_counts(
+        args.input,
+        args.output,
+        name_column=args.name_column,
+        batch_size=args.batch_size,
+    )
+    if args.audit:
+        write_bihar_land_aggregate_audit(args.audit, report)
+    if args.manifest:
+        outputs = [args.output]
+        if args.audit is not None:
+            outputs.append(args.audit)
+        write_manifest(
+            args.manifest,
+            stage="bihar_land_surname_counts",
+            inputs=[args.input],
+            outputs=outputs,
+            row_counts={
+                "source_rows": report.source_rows,
+                "nonnull_name_rows": report.nonnull_name_rows,
+                "selected_names": report.selected_names,
+                "abstained_names": report.abstained_names,
+                "distinct_surnames": report.distinct_surnames,
+            },
+            parameters={
+                "aggregate_revision": BIHAR_LAND_AGGREGATE_REVISION,
+                "input_unit": "distinct_official_full_name_string",
+                "name_column": args.name_column,
+                "normalization_revision": NORMALIZATION_REVISION,
+                "surname_provenance": BIHAR_LAND_PROVENANCE,
                 "surname_rule": "last_eligible_token",
             },
         )
@@ -590,6 +632,18 @@ def build_parser() -> argparse.ArgumentParser:
     bihar.add_argument("--manifest", type=_path)
     bihar.add_argument("--batch-size", type=int, default=100_000)
     bihar.set_defaults(handler=_bihar_reference_labels)
+
+    bihar_land_counts = commands.add_parser(
+        "aggregate-bihar-land",
+        help="group written surname tokens in distinct Bihar land names",
+    )
+    bihar_land_counts.add_argument("input", type=_path)
+    bihar_land_counts.add_argument("output", type=_path)
+    bihar_land_counts.add_argument("--name-column", default="name_of_ryot")
+    bihar_land_counts.add_argument("--audit", type=_path)
+    bihar_land_counts.add_argument("--manifest", type=_path)
+    bihar_land_counts.add_argument("--batch-size", type=int, default=100_000)
+    bihar_land_counts.set_defaults(handler=_bihar_land_counts)
 
     rajasthan_labels = commands.add_parser(
         "labels-rajasthan-ration",
