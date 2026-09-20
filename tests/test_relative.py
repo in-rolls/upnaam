@@ -12,7 +12,9 @@ from upnaam.relative import suggest_relative_surnames
 
 
 def suggest(members, relationships=None, position=None):
-    recorded = resolve_household(members, reject_evidence_conflicts=True)
+    recorded = resolve_household(
+        members, position=position, reject_evidence_conflicts=True
+    )
     candidates = suggest_relative_surnames(
         members,
         recorded,
