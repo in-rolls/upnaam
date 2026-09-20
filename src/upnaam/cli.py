@@ -164,15 +164,16 @@ def _resolve_electors(args: argparse.Namespace) -> None:
     revision = None
     if args.romanization_lookup:
         import hashlib
+        from importlib import import_module
 
         try:
-            from indicate.lookup import Lookup
+            lookup_class = import_module("indicate.lookup").Lookup
         except ImportError as exc:
             raise ValueError(
                 "Local romanization requires Python 3.13+ and upnaam[romanization]"
             ) from exc
 
-        lookup = Lookup.from_path(args.romanization_lookup)
+        lookup = lookup_class.from_path(args.romanization_lookup)
         if lookup is None:
             raise ValueError("The local romanization lookup is unavailable")
         with args.romanization_lookup.open("rb") as handle:
