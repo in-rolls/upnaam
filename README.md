@@ -1,179 +1,30 @@
 # Upnaam
 
-Upnaam is generic, auditable surname-resolution technology for Indian name
-records. Punjab is its first complete person-level adapter; it is not the
-definition of the package.
+Upnaam resolves surname tokens in parsed Indian administrative name records.
+It preserves the source name, applies a declared selection rule or corroboration
+policy, and abstains when the evidence is insufficient or conflicting.
 
-Given a parsed electoral-roll row, Upnaam:
+The result is the surname component supported by the configured source policy.
+It is not a claim about a person's legal name, hereditary family name, caste,
+religion, ethnicity, gender, residence, or origin.
 
-1. preserves the source name;
-2. emits first and final eligible surname candidates;
-3. applies an explicit state-position rule or abstains;
-4. keeps raw, normalized, Latin, and canonical surname representations in
-   separate columns; and
-5. reconciles a spelling to a named canonical anchor only when the evidence
-   leaves exactly one eligible anchor.
-
-The estimand is the surname component **written in the source name under a
-declared positional rule**. It is not necessarily a legal, hereditary, or
-family surname. An external record may provide separate evidence of a fuller
-name, but that evidence never silently overwrites the written surname.
-
-Upnaam does not infer caste, religion, ethnicity, gender, or any other social
-category. Downstream analysis belongs in repositories such as
-`last-name-basis` and `outkast`.
-
-## Output contract
-
-The public elector interface requires one row per record with a unique
-source-qualified `elector_id`, a lowercase `state`, and the raw `name`. It
-preserves row order and emits:
-
-| Field | Meaning |
-| --- | --- |
-| `surname_raw` | Exact token selected from the source name |
-| `surname_source_normalized` | Conservative same-script Unicode comparison form |
-| `surname_latin_raw` | Exact Latin token when the source or a validated aligned transcription supplies one |
-| `surname_latin_normalized` | Lowercase ASCII comparison form; not a spelling merge |
-| `surname_canonical` | Accepted anchor label; otherwise the unchanged normalized value, except that ambiguity is null |
-| `canonicalization_status` | `identity_unmapped`, `canonical_identity`, `variant_mapped`, `ambiguous`, `normalization_unavailable`, or `not_applicable` |
-| `canonicalization_reason` | Stable reason such as `single_supported_anchor`, `multiple_supported_anchors`, or `no_reconciliation_decision` |
-| `canonicalization_provenance` | Named reconciliation evidence; null when no decision was applied |
-| `canonicalization_revision` | Immutable reconciliation implementation revision |
-| `surname_position` | `first` or `last`; null on abstention |
-| `surname_provenance` | Positional rule that selected the written token |
-| `abstained` | Whether no written surname was selected |
-| `abstention_reason` | Stable reason for abstention |
-| `normalization_revision` | Normalization implementation revision |
-| `resolver_revision` | State-policy revision |
-
-For `Poorna Devi` under Bihar's final-token rule:
-
-```text
-surname_raw = "Devi"
-surname_source_normalized = "devi"
-surname_latin_normalized = "devi"
-surname_canonical = "devi"
-canonicalization_status = "identity_unmapped"
-surname_provenance = "written_final_token"
-```
-
-`Devi` is therefore the written surname result. Upnaam may separately test
-whether a linked ration or land record supplies a fuller family name, but it
-does not relabel `Devi` by intuition.
-
-## Explicit version 1 assumptions
-
-- Unicode normalization removes formatting marks, converts danda to a token
-  boundary, collapses whitespace, and case-folds. It does not transliterate.
-- Leading honorifics are ignored only when they match the small versioned list
-  in `selection.py`.
-- A candidate needs at least two alphabetic characters. Short tokens remain in
-  the raw name.
-- A single eligible token is not declared a surname; the resolver abstains.
-- Bihar, Rajasthan, and Punjab select the final eligible token.
-- Maharashtra selects the first eligible token.
-- Unsupported states abstain. Upnaam does not guess name order from an
-  individual string.
-- `Devi`, `Rani`, `Kaur`, `Singh`, `Kumar`, and similar tokens are neither
-  removed nor retyped. If the configured position selects one, that is the
-  written-surname result.
-- English `nameparser` and similar libraries are not evidence about Indian name
-  order and are not used.
-
-The machine-readable state policy is
-[`src/upnaam/resolver.json`](https://github.com/in-rolls/upnaam/blob/main/src/upnaam/resolver.json).
-Full assumptions are in
-[`docs/assumptions.md`](https://github.com/in-rolls/upnaam/blob/main/docs/assumptions.md).
-
-## Canonicalization ladder
-
-Canonicalization is deliberately separate from selection and normalization:
-
-```text
-source string
-  -> exact selected token (`surname_raw`)
-  -> same-script normalized token (`surname_source_normalized`)
-  -> exact aligned/source Latin token (`surname_latin_raw`)
-  -> deterministic Latin comparison form (`surname_latin_normalized`)
-  -> uniquely supported anchor label (`surname_canonical`)
-```
-
-Levenshtein similarity generates candidate pairs only. It never establishes a
-merge on its own. Evidence is directed from an observed form to a stable anchor
-ID and label and carries its context, source, tier, support, and similarity.
-Candidates are ranked, but rank does not force a choice:
-
-- exactly one candidate passing the declared gates is accepted;
-- more than one passing candidate yields `ambiguous` and a null canonical
-  surname; and
-- no passing candidate leaves the normalized spelling unchanged as
-  `identity_unmapped`.
-
-Many observed spellings may therefore point to one anchor, while one observed
-spelling may retain several candidate anchors. This avoids the false
-transitivity and forced partition created by global string clustering. The
-current support and similarity gates are stored in every candidate and decision
-row; neither the rank nor `support_share` is a calibrated probability.
-
-Thus `jadhab` and `jadhav` may be proposed because they are close strings, but
-they remain separate until linked records or another accepted evidence source
-supports a directed reconciliation. Complete-link clustering remains in the
-research namespace solely as a comparator. It is not the public canonicalizer.
-The complete contract is in `docs/canonicalization.md`.
-
-## Package layout
-
-Reusable technology lives in a small set of modules:
-
-| Module | Responsibility |
-| --- | --- |
-| `normalization.py` | Lossless tokenization and deterministic comparison forms |
-| `selection.py` | Positional candidate generation and abstention |
-| `corroboration.py` | Surname selection from co-resident and relation-name evidence, with length-scaled spelling tolerance |
-| `resolver.py` | State-policy selection and standard elector schema |
-| `compressed_sqlite.py` | Read-only targeted queries over multipart gzip-compressed SQLite |
-| `canonicalization/candidates.py` | Efficient edit-distance candidate generation |
-| `canonicalization/reconciliation.py` | Directed evidence, ranking, and ambiguity-preserving decisions |
-| `canonicalization/mapping.py` | Decision validation, application, status, reason, and provenance |
-| `adapters/bihar.py` | Official-land reference labels on accepted Bihar links |
-| `adapters/bihar_land_counts.py` | Grouped final-token vocabulary from distinct official Bihar land names |
-| `adapters/bihar_land_inference.py` | Separate inferred vocabulary after exact land-record suffixes |
-| `adapters/bihar_ration.py` | Grouped written-surname counts from Bihar ration rosters |
-| `adapters/punjab.py` | Frozen Punjab roll plus validated Indicate alignment |
-| `adapters/electors.py` | Parsed rolls (Telangana, Lakshadweep, Karnataka) resolved by household, relation and house-name corroboration, with measured confidence |
-| `adapters/rajasthan.py` | Surname-only evidence from accepted ration links |
-| `adapters/rajasthan_reference.py` | Ration-card reference labels on accepted Rajasthan links |
-| `adapters/links.py` | Accepted Bihar land and Rajasthan ration links |
-| `research/` | Developmental diagnostics and clustering comparator, not public API |
-
-There is one installed CLI rather than numbered scripts. Each command is a
-separate pipeline operation and reads or writes CSV/CSV.GZ or Parquet:
+## Installation
 
 ```console
-upnaam normalize names.parquet normalized.parquet --name-column name
-upnaam select normalized.parquet candidates.parquet --name-column name
-upnaam resolve electors.parquet resolved.parquet
-upnaam labels-bihar-land bihar_links.parquet bihar_reference_labels.parquet \
-  --manifest bihar_reference_manifest.json
-upnaam aggregate-bihar-land unique_hindi_names_uncleaned.parquet \
-  bihar_land_surname_counts.parquet --audit bihar_land_counts.json
-upnaam infer-bihar-land unique_hindi_names_uncleaned.parquet \
-  bihar_land_inferred_surname_counts.parquet --audit bihar_land_inference.json
-upnaam labels-rajasthan-ration rajasthan_links.parquet \
-  rajasthan_reference_labels.parquet --manifest rajasthan_reference_manifest.json
-upnaam aggregate-bihar-ration bihar_ration_surname_counts.parquet \
-  --part ration_cards.sqlite.gz.001 --part ration_cards.sqlite.gz.002 \
-  --index ration_cards.sqlite.gzidx --audit bihar_ration_counts_audit.json
-upnaam evidence-rajasthan accepted_links.parquet rajasthan_evidence.parquet
-upnaam reconcile propose bihar_ration_surname_counts.parquet \
-  bihar_ration_variant_candidates.parquet --audit bihar_variant_candidates.json
-upnaam reconcile rank rajasthan_evidence.parquet candidates.parquet
-upnaam reconcile decide candidates.parquet decisions.parquet --audit audit.json
-upnaam reconcile apply resolved.parquet canonical.parquet decisions.parquet
+pip install upnaam
 ```
 
-The Python interface is equally small:
+Karnataka token romanization uses the optional Indicate integration and Python
+3.13 or later:
+
+```console
+pip install "upnaam[romanization]"
+```
+
+## Python interface
+
+`resolve_electors` accepts one row per record with a unique source-qualified
+`elector_id`, a lowercase `state`, and the raw `name`. It preserves row order.
 
 ```python
 import pandas as pd
@@ -186,147 +37,126 @@ electors = pd.DataFrame(
         "name": ["Poorna Devi", "Patil Ashwini"],
     }
 )
+
 resolved = resolve_electors(electors)
+resolved[["name_raw", "surname_raw", "abstained", "resolver_revision"]]
 ```
 
-## Data adapters
+The default policy selects the final eligible token for Bihar, Punjab, and
+Rajasthan and the first eligible token for Maharashtra. Unsupported states and
+names without enough usable tokens abstain. A custom versioned policy can be
+loaded with `load_resolver_policy`.
 
-The Punjab adapter validates row count and exact equality of 11 repeated native
-fields before joining the frozen Dataverse roll to Indicate by source-row
-order. It then applies the final-token rule to the native Gurmukhi name and
-copies a Latin token only when complete token counts agree. Details and
-aggregate results are in
-[`docs/punjab-electors.md`](https://github.com/in-rolls/upnaam/blob/main/docs/punjab-electors.md).
+## Parsed-roll adapters
 
-The electors adapter (`upnaam resolve-electors --state ...`) reads a parsed roll
-(one row per printed elector box, with house number and part) and resolves
-candidate surname tokens using corroboration and source-specific fallbacks.
-Corroboration comes from a co-resident at the same house, the relation name,
-or (where the roll prints one) the house name carrying the same token. Telangana's rolls mix surname-first and surname-last names
-within one part, so no position rule applies; uncorroborated names abstain.
-Lakshadweep's roll prints a house name people go by, so the house field is
-evidence there. Karnataka resolves individual Kannada tokens through a local Indicate
-lookup, so an unknown given name does not hide a known surname. It retains the
-original name and selected source token. Explicit initials plus exactly one usable
-word, such as `T. Subbarow`, can retain that word: corroboration takes precedence,
-and an unsupported selection carries `surname_provenance=initials_single_token`
-and `surname_evidence=position`. Ordinary single-word names still abstain. Distinct numeric house components stay separate;
-zero house numbers are unknown households. Conflicting household and relation
-candidates abstain. Each row carries its evidence rung. Agreement between evidence
-sources is a consistency measure, not a validated probability of surname accuracy.
-Karnataka leaves `surname_confidence` null pending external validation. Tokens that
-can consist entirely of two or more spelled English initials are excluded from
-surname evidence. This conservative rule also excludes ambiguous names such as
-`ಬಿಬಿ` (Bibi); it does not establish that a token is an initial.
+The `resolve-electors` command applies household and relation-name
+corroboration to the common parsed-roll schema.
 
-Karnataka requires Python 3.13+ and `upnaam[romanization]`:
+| State | Current rule |
+| --- | --- |
+| Telangana | Household and relation evidence; no position fallback |
+| Lakshadweep | Household, relation, and printed house-name evidence; no position fallback |
+| Karnataka | Native-token corroboration with a supplied local romanization lookup; explicit initials-plus-one-word fallback |
 
-```bash
-upnaam resolve-electors electors.parquet surnames.parquet --state karnataka \
-  --romanization-lookup ../indicate/indicate/data/kannada_to_english/lookup.tsv.gz \
-  --audit surnames_audit.json
+```console
+upnaam resolve-electors electors.parquet surnames.parquet \
+  --state telangana --audit surnames_audit.json
 ```
 
-Details of the other roll adapters are in
-[`docs/telangana-electors.md`](docs/telangana-electors.md)
-and
-[`docs/lakshadweep-electors.md`](docs/lakshadweep-electors.md).
+Dedicated commands validate and resolve the audited J&K English, Hindi, and
+Urdu inventory schemas:
 
-For Rajasthan, Upnaam reuses only the existing high-precision `milaan_raj` T1
-and T2 person links; it neither re-scores nor broadens them. The source pipeline
-reports about 15.9 million cards, 62.8 million members, explicit relationships,
-and estimated T1/T2 false-discovery rates around 0.1%. Bihar's accepted land
-links are also reused rather than rebuilt. These sources can provide alternate
-transcriptions and fuller-name evidence, subject to the linkage limitations in
-[`docs/data-contracts.md`](https://github.com/in-rolls/upnaam/blob/main/docs/data-contracts.md).
+```console
+upnaam resolve-jk-english inventory.parquet source_audit.json output_directory
+upnaam resolve-jk-hindi inventory.parquet source_audit.json output_directory
+upnaam resolve-jk-urdu inventory.parquet source_audit.json output_directory
+```
 
-The first Rajasthan surname-only pilot produces 2,021 observed-form decisions:
-608 accepted identities, 93 accepted variants, 114 explicit ambiguities, and
-1,206 unresolved forms. These are operating counts, not accuracy estimates;
-the ration-side token is a provisional anchor. Details and sample decisions are
-in `docs/canonicalization.md`.
+Native selection and Latin mapping remain separate. Adding a romanization map
+cannot create a selection or change an abstention.
 
-For the person-level Rajasthan reference artifact, the accepted ration-card
-transcription is explicitly treated as `provisional_gold`. Upnaam accepts its
-final eligible token even when the roll differs, abstains on one-token ration
-names, and excludes every link involving one of 570 ration members linked to
-multiple electors. The first run accepts 474,587 labels from 1,004,418 T1/T2
-links. The complete contract is in `docs/rajasthan-ration-reference.md`.
+Punjab has a separate adapter for its validated roll-to-transliteration join.
+Bihar and Rajasthan adapters produce typed reference labels and aggregate
+surname evidence from accepted source links. See the
+[data contracts](docs/data-contracts.md) for their required keys and validation
+rules.
 
-For Bihar, Upnaam treats the official land-side name as the preferred reference
-transcription on the existing 4,387 exact unique one-to-one Shekhpura links.
-The first run accepts 4,366 final-token reference labels, abstains on 20
-land-side single-token names, and excludes one land/roll positional conflict.
-The complete join contract, dictionary, and recode ledger are in
-`docs/bihar-land-reference.md`.
+## Output contract
 
-The separate full-state Bihar land pass uses 3,197,303 distinct nonnull official
-ryot-name strings and selects 2,920,486 written final tokens. Its 144,081 token
-groups form a provisional official-record vocabulary, not person counts or
-canonical labels. The frequent terminal notation `वगैरह` demonstrates why
-official transcription quality does not by itself make every final token a
-surname. The complete contract is in `docs/bihar-land-counts.md`.
+Every resolved row retains its source identity and records the rule revision.
+Across the generic and parsed-roll resolver artifacts, the main fields are:
 
-The separate land inference pass adjusts 79,891 names whose written final token
-exactly matches one of 10 approved administrative suffixes. Version 2 scans
-left across exact `एव` and `एवं` connectors and repeated approved suffixes. It
-reports direct-written, immediate-previous, and chain-adjusted support
-separately and performs no fuzzy suffix matching.
+| Field | Meaning |
+| --- | --- |
+| `surname_raw` | Exact token selected from the source name |
+| `surname_source_normalized` | Conservative same-script comparison form |
+| `surname_latin_raw` | Exact Latin token supplied by the source or a validated alignment |
+| `surname_latin_normalized` | Lowercase ASCII comparison form |
+| `surname_canonical` | Accepted reconciliation anchor, unchanged normalized value, or null on ambiguity |
+| `surname_position` | Selected token position, when applicable |
+| `surname_provenance` | Rule that selected the token |
+| `surname_evidence` | Evidence rung used by corroboration adapters |
+| `surname_confidence` | Source-specific diagnostic when defined; otherwise null |
+| `abstained` | Whether the resolver declined to select a surname |
+| `abstention_reason` | Stable machine-readable reason |
+| `normalization_revision` | Normalization implementation revision |
+| `resolver_revision` | Source-policy implementation revision |
 
-No hand-labeled surname corpus is required. Manual review, if performed, audits
-linkage precision rather than supplying surname labels.
+Raw, same-script normalized, Latin, and canonical values are separate columns.
+Missing Latin text stays null. Confidence is emitted only when the adapter
+defines a measured diagnostic; it is not a probability that the selected token
+is a hereditary surname.
 
-The Bihar ration SQLite source does not need to be expanded to its 56.7 GB
-logical size. Upnaam's generic compressed-SQLite adapter uses a reusable seek
-index to run targeted read-only queries directly over its two 3.30 GB archive
-parts. The access contract and example are in `docs/compressed-sqlite.md`.
+## Selection and reconciliation rules
 
-The first complete Bihar ration aggregation scans 17,696,683 household rosters
-and 85,798,262 stored member rows. It selects 79,358,176 written final tokens
-into 310,949 normalized groups while retaining `Devi`, `Kumar`, `Kumari`, and
-similar tokens. Results and the denominator audit are in
-`docs/bihar-ration-counts.md`.
+- Unicode normalization removes formatting marks, converts danda to a token
+  boundary, collapses whitespace, and case-folds. It does not transliterate.
+- Leading honorifics are ignored only when they match the versioned list.
+- A candidate requires at least two alphabetic characters.
+- Position-based resolution abstains on a single eligible token.
+- Household and relation evidence can corroborate a source token but cannot
+  overwrite the written name.
+- Conflicting evidence abstains where the source policy requires it.
+- String similarity proposes reconciliation candidates. It cannot establish a
+  mapping by itself.
+- Reconciliation accepts exactly one candidate that passes the declared evidence
+  gates. Multiple passing candidates remain explicit ambiguity.
 
-## Privacy and non-goals
+The machine-readable state policy is
+[`src/upnaam/resolver.json`](https://github.com/in-rolls/upnaam/blob/main/src/upnaam/resolver.json). The full contracts are in
+[assumptions](docs/assumptions.md),
+[surname ladder](docs/surname-ladder.md), and
+[canonicalization](docs/canonicalization.md).
 
-Raw electoral, ration, land, relationship, and household records remain
-restricted local artifacts. Public outputs should be limited to reviewed
-reconciliation artifacts, schemas, manifests, tests, and aggregate diagnostics.
+## Command-line interface
 
-Upnaam does not:
+The CLI reads and writes CSV, compressed CSV, and Parquet tables.
 
-- infer caste or publish surname-to-caste mappings;
-- claim calibrated confidence without a calibration target;
-- force a household or family surname onto an elector;
-- treat string similarity as identity evidence;
-- use a general English-name parser to decide Indian name order; or
-- support consequential decisions about individuals.
+```console
+upnaam normalize names.parquet normalized.parquet --name-column name
+upnaam select normalized.parquet candidates.parquet --name-column name
+upnaam resolve electors.parquet resolved.parquet
+upnaam reconcile propose surname_counts.parquet candidates.parquet \
+  --audit candidates_audit.json
+upnaam reconcile rank evidence.parquet candidates.parquet
+upnaam reconcile decide candidates.parquet decisions.parquet --audit audit.json
+upnaam reconcile apply resolved.parquet canonical.parquet decisions.parquet
+```
 
-The repository is unreleased. Punjab is the first full elector adapter and
-Rajasthan is the first anchored-reconciliation pilot. The normalization,
-selection, reconciliation, and application primitives are state-agnostic and
-intended for one-dataset-at-a-time expansion.
+Run `upnaam --help` for the complete command set.
 
-### Audited J&K English inventory
+## Privacy and use
 
-`upnaam resolve-jk-english inventory.parquet source_audit.json output_directory`
-validates instate's reconciled 2018 English inventory and preserves every active
-assembly row as a corroborated token selection or an abstention. It requires exact
-spelling agreement, excludes inactive/NPR rows and ambiguous relationship evidence,
-and leaves confidence null. This covers historical AC047–AC050, now Ladakh;
-it does not establish hereditary-surname accuracy or full-state coverage.
-See [the handoff contract](docs/jk-english-electors.md).
+Person-level electoral, ration, land, relationship, and household records should
+remain in controlled storage. Public outputs should be limited to reviewed
+aggregates, schemas, manifests, tests, and evidence that has passed a separate
+privacy review.
 
-`upnaam resolve-jk-hindi inventory.parquet source_audit.json output_directory`
-uses the same audited source checks for the historical Hindi AC057–AC080 inventory.
-It preserves every active assembly row and compares accepted Devanagari tokens
-without transliteration. Native selections and abstentions remain separate from
-Latin fields, which stay null. See [the Hindi contract](docs/jk-hindi-electors.md).
+Upnaam is intended for auditable data preparation and aggregate research. It
+must not be used to label individuals or make consequential decisions about
+them. It does not publish surname-to-caste mappings, manufacture confidence
+scores, force family surnames onto records, or treat edit distance as identity
+evidence.
 
-`upnaam resolve-jk-urdu inventory.parquet source_audit.json output_directory`
-uses instate's calibrated full Urdu inventory. It preserves 4,608,102 active
-assembly records, selects 970,947 corroborated native occurrences and abstains
-on 3,637,155 records. Supplying the validated 27,221-pair map covers all 4,399
-selected Urdu token types without changing native evidence. Instate separately
-reconciles the 693,201 exact Hindi/Urdu edition links before aggregation. See
-[the Urdu contract](docs/jk-urdu-electors.md).
+Detailed adapter documentation is available in the
+[documentation index](docs/index.md).

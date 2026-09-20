@@ -4,6 +4,8 @@ All notable changes to Upnaam will be documented here.
 
 ## Unreleased
 
+## 0.1.0 - 2026-09-20
+
 - Add the calibrated full J&K Urdu profile. Preserve 4,608,102 active assembly
   records, select 970,947 corroborated native occurrences, and apply the shared
   27,221-pair map to all 4,399 selected token types without changing native
