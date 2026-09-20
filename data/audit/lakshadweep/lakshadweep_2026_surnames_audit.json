@@ -1,0 +1,46 @@
+{
+  "abstention_reasons": {
+    "no-eligible-token": 1299,
+    "no-evidence": 51293
+  },
+  "confidence": {
+    "corroborated": 0.8602941176470589,
+    "first": 0.04297652208515718,
+    "last": 0.8923597294070832,
+    "middle": 0.06466374850775965
+  },
+  "evidence": {
+    "abstained": 52592,
+    "house": 2371,
+    "household": 871,
+    "household_and_relation": 117,
+    "relation": 1667
+  },
+  "households": 43229,
+  "position_by_evidence": {
+    "house": {
+      "first": 46,
+      "last": 2270,
+      "middle": 55
+    },
+    "household": {
+      "first": 90,
+      "last": 735,
+      "middle": 46
+    },
+    "household_and_relation": {
+      "first": 4,
+      "last": 101,
+      "middle": 12
+    },
+    "relation": {
+      "first": 76,
+      "last": 1379,
+      "middle": 212
+    }
+  },
+  "relation_agreement": 117,
+  "relation_agreement_checked": 136,
+  "rows": 57618,
+  "state": "lakshadweep"
+}

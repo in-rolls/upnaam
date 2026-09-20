@@ -1,0 +1,39 @@
+{
+  "abstention_reasons": {
+    "no-eligible-token": 5461,
+    "no-evidence": 8192933
+  },
+  "confidence": {
+    "corroborated": 0.9589813377445847,
+    "first": 0.39936438015780823,
+    "last": 0.5859630027334264,
+    "middle": 0.014672617108765386
+  },
+  "evidence": {
+    "abstained": 8198394,
+    "household": 9625649,
+    "household_and_relation": 4236582,
+    "relation": 2531845
+  },
+  "households": 8505737,
+  "position_by_evidence": {
+    "household": {
+      "first": 5591484,
+      "last": 3928476,
+      "middle": 105689
+    },
+    "household_and_relation": {
+      "first": 593988,
+      "last": 3542747,
+      "middle": 99847
+    },
+    "relation": {
+      "first": 361738,
+      "last": 2135099,
+      "middle": 35008
+    }
+  },
+  "relation_agreement": 4236582,
+  "relation_agreement_checked": 4417794,
+  "rows": 24592470
+}

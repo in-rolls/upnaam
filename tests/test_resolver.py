@@ -31,7 +31,7 @@ def test_resolve_electors_preserves_rows_and_applies_state_policy() -> None:
     assert result.loc[2, "canonicalization_reason"] == "surname_not_selected"
     assert result.loc[3, "abstention_reason"] == "unsupported-state"
     assert result.loc[3, "abstained"]
-    assert set(result["normalization_revision"]) == {"normalization-v1"}
+    assert set(result["normalization_revision"]) == {"normalization-v2"}
     assert set(result["resolver_revision"]) == {"resolver-v1"}
 
 
@@ -72,3 +72,17 @@ def test_resolve_electors_rejects_invalid_input(
 ) -> None:
     with pytest.raises(ValueError, match=message):
         resolve_electors(records)
+
+
+def test_damaged_surname_preserves_source_without_inventing_latin_spelling() -> None:
+    records = pd.DataFrame(
+        {"elector_id": ["roll:1"], "state": ["bihar"], "name": ["Asha Sha\ufffdma"]}
+    )
+    result = resolve_electors(records)
+    assert len(result) == 1
+    assert result.loc[0, "name_raw"] == "Asha Sha\ufffdma"
+    assert result.loc[0, "surname_raw"] == "Sha\ufffdma"
+    assert pd.isna(result.loc[0, "surname_latin_raw"])
+    assert pd.isna(result.loc[0, "surname_latin_normalized"])
+    assert pd.isna(result.loc[0, "surname_canonical"])
+    assert result.loc[0, "canonicalization_status"] == "normalization_unavailable"

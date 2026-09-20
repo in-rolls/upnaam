@@ -37,3 +37,9 @@ def test_latin_normalization_is_not_transliteration_or_canonicalization() -> Non
     assert normalize_latin_token("Rāj") == "raj"
     assert normalize_latin_token("Jadhab") == "jadhab"
     assert normalize_latin_token("ਯਾਦਵ") is None
+
+
+def test_latin_normalization_does_not_erase_extraction_damage() -> None:
+    assert normalize_latin_token("Sha\ufffdma") is None
+    assert normalize_name("Sha\ufffdma") == "sha\ufffdma"
+    assert tokenize_name("Sha\ufffdma")[0].raw == "Sha\ufffdma"

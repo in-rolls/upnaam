@@ -154,3 +154,25 @@ The aggregate state output preserves one input row as one output row. Its
 The linked-record output standardizes source sex labels to `female`, `male`,
 or `unknown` solely for stratified diagnostics. The accepted-link artifact
 retains the source-specific value.
+
+## Karnataka elector rows
+
+`resolve-electors --state karnataka` uses the 2017 parsed-roll column set.
+`elector_name_en` and `father_or_husband_name_en` supply Latin tokens;
+`elector_name` and `father_or_husband_name` preserve the Kannada source. The
+input must apply corrections before resolution and mark deleted entries with
+`deleted = true`. Every active input row remains in the output, including
+abstentions.
+
+Households are scoped to one PDF part. A house value consisting entirely of
+zero digits denotes an unknown household and cannot link electors for surname
+evidence. The raw house value remains in the output. Other house numbers use
+the shared normalization for both sorting and grouping. House numbers are not
+surname evidence. Resolver v4 admits explicit initials plus exactly one usable word
+to household and relative corroboration. If no evidence is found, it retains the
+sole word with `surname_provenance=initials_single_token`,
+`surname_evidence=position`, and null confidence. This is a name-token fallback,
+not independently established family-surname evidence. Unknown or damaged forms,
+ambiguous compound initials, and ordinary single-word names do not qualify.
+Adding eligible names to household tallies can change other selections or create
+conflicts; conflicts continue to abstain.

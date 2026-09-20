@@ -130,6 +130,7 @@ Reusable technology lives in a small set of modules:
 | --- | --- |
 | `normalization.py` | Lossless tokenization and deterministic comparison forms |
 | `selection.py` | Positional candidate generation and abstention |
+| `corroboration.py` | Surname selection from co-resident and relation-name evidence, with length-scaled spelling tolerance |
 | `resolver.py` | State-policy selection and standard elector schema |
 | `compressed_sqlite.py` | Read-only targeted queries over multipart gzip-compressed SQLite |
 | `canonicalization/candidates.py` | Efficient edit-distance candidate generation |
@@ -140,6 +141,7 @@ Reusable technology lives in a small set of modules:
 | `adapters/bihar_land_inference.py` | Separate inferred vocabulary after exact land-record suffixes |
 | `adapters/bihar_ration.py` | Grouped written-surname counts from Bihar ration rosters |
 | `adapters/punjab.py` | Frozen Punjab roll plus validated Indicate alignment |
+| `adapters/electors.py` | Parsed rolls (Telangana, Lakshadweep, Karnataka) resolved by household, relation and house-name corroboration, with measured confidence |
 | `adapters/rajasthan.py` | Surname-only evidence from accepted ration links |
 | `adapters/rajasthan_reference.py` | Ration-card reference labels on accepted Rajasthan links |
 | `adapters/links.py` | Accepted Bihar land and Rajasthan ration links |
@@ -195,6 +197,40 @@ order. It then applies the final-token rule to the native Gurmukhi name and
 copies a Latin token only when complete token counts agree. Details and
 aggregate results are in
 [`docs/punjab-electors.md`](https://github.com/in-rolls/upnaam/blob/main/docs/punjab-electors.md).
+
+The electors adapter (`upnaam resolve-electors --state ...`) reads a parsed roll
+(one row per printed elector box, with house number and part) and resolves
+candidate surname tokens using corroboration and source-specific fallbacks.
+Corroboration comes from a co-resident at the same house, the relation name,
+or (where the roll prints one) the house name carrying the same token. Telangana's rolls mix surname-first and surname-last names
+within one part, so no position rule applies; uncorroborated names abstain.
+Lakshadweep's roll prints a house name people go by, so the house field is
+evidence there. Karnataka resolves individual Kannada tokens through a local Indicate
+lookup, so an unknown given name does not hide a known surname. It retains the
+original name and selected source token. Explicit initials plus exactly one usable
+word, such as `T. Subbarow`, can retain that word: corroboration takes precedence,
+and an unsupported selection carries `surname_provenance=initials_single_token`
+and `surname_evidence=position`. Ordinary single-word names still abstain. Distinct numeric house components stay separate;
+zero house numbers are unknown households. Conflicting household and relation
+candidates abstain. Each row carries its evidence rung. Agreement between evidence
+sources is a consistency measure, not a validated probability of surname accuracy.
+Karnataka leaves `surname_confidence` null pending external validation. Tokens that
+can consist entirely of two or more spelled English initials are excluded from
+surname evidence. This conservative rule also excludes ambiguous names such as
+`ಬಿಬಿ` (Bibi); it does not establish that a token is an initial.
+
+Karnataka requires Python 3.13+ and `upnaam[romanization]`:
+
+```bash
+upnaam resolve-electors electors.parquet surnames.parquet --state karnataka \
+  --romanization-lookup ../indicate/indicate/data/kannada_to_english/lookup.tsv.gz \
+  --audit surnames_audit.json
+```
+
+Details of the other roll adapters are in
+[`docs/telangana-electors.md`](docs/telangana-electors.md)
+and
+[`docs/lakshadweep-electors.md`](docs/lakshadweep-electors.md).
 
 For Rajasthan, Upnaam reuses only the existing high-precision `milaan_raj` T1
 and T2 person links; it neither re-scores nor broadens them. The source pipeline
@@ -270,3 +306,27 @@ The repository is unreleased. Punjab is the first full elector adapter and
 Rajasthan is the first anchored-reconciliation pilot. The normalization,
 selection, reconciliation, and application primitives are state-agnostic and
 intended for one-dataset-at-a-time expansion.
+
+### Audited J&K English inventory
+
+`upnaam resolve-jk-english inventory.parquet source_audit.json output_directory`
+validates instate's reconciled 2018 English inventory and preserves every active
+assembly row as a corroborated token selection or an abstention. It requires exact
+spelling agreement, excludes inactive/NPR rows and ambiguous relationship evidence,
+and leaves confidence null. This covers historical AC047–AC050, now Ladakh;
+it does not establish hereditary-surname accuracy or full-state coverage.
+See [the handoff contract](docs/jk-english-electors.md).
+
+`upnaam resolve-jk-hindi inventory.parquet source_audit.json output_directory`
+uses the same audited source checks for the historical Hindi AC057–AC080 inventory.
+It preserves every active assembly row and compares accepted Devanagari tokens
+without transliteration. Native selections and abstentions remain separate from
+Latin fields, which stay null. See [the Hindi contract](docs/jk-hindi-electors.md).
+
+`upnaam resolve-jk-urdu inventory.parquet source_audit.json output_directory`
+uses instate's calibrated full Urdu inventory. It preserves 4,608,102 active
+assembly records, selects 970,947 corroborated native occurrences and abstains
+on 3,637,155 records. Supplying the validated 27,221-pair map covers all 4,399
+selected Urdu token types without changing native evidence. Instate separately
+reconciles the 693,201 exact Hindi/Urdu edition links before aggregation. See
+[the Urdu contract](docs/jk-urdu-electors.md).
