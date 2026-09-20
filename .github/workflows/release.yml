@@ -37,11 +37,12 @@ jobs:
   # here rather than in py-canon's reusable-release.
   publish:
     needs: release
-    # A PyPI upload cannot be withdrawn, so publish only from a tag. The reusable
-    # build rejects the tag unless it matches the version in pyproject.toml.
+    # A tag push creates the GitHub release without publishing to PyPI. Publish
+    # only through an explicit manual run against that tag.
     if: >-
       startsWith(github.ref, 'refs/tags/') &&
-      (github.event_name == 'push' || inputs.publish)
+      github.event_name == 'workflow_dispatch' &&
+      inputs.publish
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: pypi
