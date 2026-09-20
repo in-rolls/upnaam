@@ -4,6 +4,35 @@ All notable changes to Upnaam will be documented here.
 
 ## Unreleased
 
+- Add the calibrated full J&K Urdu profile. Preserve 4,608,102 active assembly
+  records, select 970,947 corroborated native occurrences, and apply the shared
+  27,221-pair map to all 4,399 selected token types without changing native
+  evidence or abstentions.
+
+- Add optional local Urdu romanization after native corroboration, preserving
+  abstentions, letter distinctions and null confidence. Hindi and Urdu share
+  map validation and record the supplied map's hash.
+
+- Add an audited J&K Hindi inventory handoff with exact native-script evidence,
+  explicit abstentions and no inferred Latin spellings. Share inventory validation
+  with the English adapter.
+
+- Add a hash-verified J&K English inventory handoff with active assembly filtering,
+  explicit relationship mapping, exact spelling corroboration and null confidence.
+
+- Bind elector input and output paths as SQL parameters so filenames containing
+  apostrophes work throughout surname artifact creation.
+
+- Keep Latin normalization unavailable when a selected token contains U+FFFD,
+  preserving the damaged source instead of manufacturing a shorter spelling
+  (`normalization-v2`).
+
+- Retain the sole usable token beside explicit initials in Karnataka resolver v4,
+  with distinct fallback provenance, null confidence, and corroboration precedence.
+
+- Add a Karnataka elector adapter with native/Latin name provenance and
+  household isolation for missing zero house numbers.
+
 - Add manifest-verified, read-only targeted SQLite queries over multipart gzip
   archives without materializing the decompressed database.
 - Add streaming member and household counts by normalized written-final token

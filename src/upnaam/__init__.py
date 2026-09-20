@@ -1,5 +1,13 @@
 """Surname resolution for parsed Indian electoral rolls."""
 
+from upnaam.ladder import (
+    LADDER_REVISION,
+    LadderPolicy,
+    LinkedSurname,
+    NameRecord,
+    ResolutionBundle,
+    resolve_name_records,
+)
 from upnaam.normalization import (
     NORMALIZATION_REVISION,
     NameToken,
@@ -24,9 +32,14 @@ __all__ = [
     "CANONICALIZATION_REVISION",
     "ELECTOR_INPUT_COLUMNS",
     "ELECTOR_OUTPUT_COLUMNS",
+    "LADDER_REVISION",
     "NORMALIZATION_REVISION",
     "CanonicalizationStatus",
+    "LadderPolicy",
+    "LinkedSurname",
+    "NameRecord",
     "NameToken",
+    "ResolutionBundle",
     "ResolverPolicy",
     "SurnameCandidateResult",
     "extract_surname_candidates",
@@ -35,5 +48,6 @@ __all__ = [
     "normalize_latin_token",
     "normalize_name",
     "resolve_electors",
+    "resolve_name_records",
     "tokenize_name",
 ]

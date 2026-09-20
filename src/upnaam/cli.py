@@ -153,6 +153,71 @@ def _resolve_punjab(args: argparse.Namespace) -> None:
         write_punjab_summary(args.summary, report)
 
 
+def _resolve_electors(args: argparse.Namespace) -> None:
+    from upnaam.adapters.electors import (
+        SOURCES,
+        build_elector_artifact,
+        write_elector_audit,
+    )
+
+    lookup = None
+    revision = None
+    if args.romanization_lookup:
+        import hashlib
+        from importlib import import_module
+
+        try:
+            lookup_class = import_module("indicate.lookup").Lookup
+        except ImportError as exc:
+            raise ValueError(
+                "Local romanization requires Python 3.13+ and upnaam[romanization]"
+            ) from exc
+
+        lookup = lookup_class.from_path(args.romanization_lookup)
+        if lookup is None:
+            raise ValueError("The local romanization lookup is unavailable")
+        with args.romanization_lookup.open("rb") as handle:
+            revision = "sha256:" + hashlib.file_digest(handle, "sha256").hexdigest()
+    report = build_elector_artifact(
+        SOURCES[args.state],
+        args.electors,
+        args.output,
+        position=args.position,
+        romanize_token=lookup.get if lookup is not None else None,
+        romanization_revision=revision,
+    )
+    if args.audit:
+        write_elector_audit(args.audit, report)
+
+
+def _resolve_jk_english(args: argparse.Namespace) -> None:
+    from upnaam.adapters.jk_english import resolve_jk_english
+
+    resolve_jk_english(args.inventory, args.source_audit, args.output_dir)
+
+
+def _resolve_jk_urdu(args: argparse.Namespace) -> None:
+    from upnaam.adapters.jk_urdu import resolve_jk_urdu
+
+    resolve_jk_urdu(
+        args.inventory,
+        args.source_audit,
+        args.output_dir,
+        romanization_map=args.romanization_map,
+    )
+
+
+def _resolve_jk_hindi(args: argparse.Namespace) -> None:
+    from upnaam.adapters.jk_hindi import resolve_jk_hindi
+
+    resolve_jk_hindi(
+        args.inventory,
+        args.source_audit,
+        args.output_dir,
+        romanization_map=args.romanization_map,
+    )
+
+
 def _bihar_reference_labels(args: argparse.Namespace) -> None:
     report = build_bihar_land_reference_labels(
         args.input, args.output, batch_size=args.batch_size
@@ -672,6 +737,65 @@ def build_parser() -> argparse.ArgumentParser:
     punjab.add_argument("--summary", type=_path)
     punjab.add_argument("--batch-size", type=int, default=100_000)
     punjab.set_defaults(handler=_resolve_punjab)
+
+    electors = commands.add_parser(
+        "resolve-electors",
+        help="build a state's elector artifact from its parsed roll by corroboration",
+    )
+    electors.add_argument("electors", type=_path, help="the parsed roll (parquet)")
+    electors.add_argument("output", type=_path)
+    electors.add_argument(
+        "--state", required=True, choices=("telangana", "lakshadweep", "karnataka")
+    )
+    electors.add_argument("--audit", type=_path)
+    electors.add_argument(
+        "--romanization-lookup",
+        type=_path,
+        help="Local indicate lookup.tsv.gz; required for Karnataka",
+    )
+    electors.add_argument(
+        "--position",
+        choices=("first", "last"),
+        default=None,
+        help="position rule for uncorroborated names (default: the state's, none)",
+    )
+    electors.set_defaults(handler=_resolve_electors)
+
+    jk = commands.add_parser(
+        "resolve-jk-english", help="resolve the audited 2018 J&K English inventory"
+    )
+    jk.add_argument("inventory", type=_path)
+    jk.add_argument("source_audit", type=_path)
+    jk.add_argument("output_dir", type=_path)
+    jk.set_defaults(handler=_resolve_jk_english)
+
+    urdu = commands.add_parser(
+        "resolve-jk-urdu",
+        help="resolve native tokens in the glyph-verified 2018 J&K Urdu inventory",
+    )
+    urdu.add_argument("inventory", type=_path)
+    urdu.add_argument("source_audit", type=_path)
+    urdu.add_argument("output_dir", type=_path)
+    urdu.add_argument(
+        "--romanization-map",
+        type=_path,
+        help="Local JSON native-to-Latin token map, applied after native selection",
+    )
+    urdu.set_defaults(handler=_resolve_jk_urdu)
+
+    hindi = commands.add_parser(
+        "resolve-jk-hindi",
+        help="resolve native tokens in the audited 2018 J&K Hindi inventory",
+    )
+    hindi.add_argument("inventory", type=_path)
+    hindi.add_argument("source_audit", type=_path)
+    hindi.add_argument("output_dir", type=_path)
+    hindi.add_argument(
+        "--romanization-map",
+        type=_path,
+        help="Local JSON native-to-Latin token map, applied after native selection",
+    )
+    hindi.set_defaults(handler=_resolve_jk_hindi)
 
     bihar = commands.add_parser(
         "labels-bihar-land", help="build Bihar land-record reference labels"

@@ -10,7 +10,7 @@ _ZERO_WIDTH = re.compile("[\u200b-\u200d\ufeff]")
 _DANDA = re.compile("[\u0964\u0965]")
 _WHITESPACE = re.compile(r"\s+")
 _TOKEN = re.compile(r"[^\s\u0964\u0965]+")
-NORMALIZATION_REVISION = "normalization-v1"
+NORMALIZATION_REVISION = "normalization-v2"
 
 
 @dataclass(frozen=True, slots=True)
@@ -53,8 +53,10 @@ def normalize_latin_token(value: object) -> str | None:
 
     This removes combining marks and non-ASCII characters; it does not infer
     missing letters, transliterate another script, or merge spelling variants.
+    A replacement character makes the Latin form unavailable; dropping it would
+    turn an extraction failure into a different spelling.
     """
-    if not isinstance(value, str):
+    if not isinstance(value, str) or "\ufffd" in value:
         return None
     decomposed = unicodedata.normalize("NFKD", value)
     without_marks = "".join(
