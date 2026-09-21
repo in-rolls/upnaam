@@ -95,6 +95,12 @@ class ElectorSource:
 
 
 SOURCES: dict[str, ElectorSource] = {
+    "andhra": ElectorSource(
+        state="andhra",
+        source_revision="og47iv-andhra-2017",
+        resolver_revision="andhra-elector-resolver-v1",
+        zero_house_is_missing=True,
+    ),
     "karnataka": ElectorSource(
         state="karnataka",
         source_revision="og47iv-karnataka-2017",

@@ -54,6 +54,7 @@ corroboration to the common parsed-roll schema.
 
 | State | Current rule |
 | --- | --- |
+| Andhra Pradesh | Household and relation evidence; no position fallback |
 | Telangana | Household and relation evidence; no position fallback |
 | Lakshadweep | Household, relation, and printed house-name evidence; no position fallback |
 | Karnataka | Native-token corroboration with a supplied local romanization lookup; explicit initials-plus-one-word fallback |
@@ -61,7 +62,7 @@ corroboration to the common parsed-roll schema.
 
 ```console
 upnaam resolve-electors electors.parquet surnames.parquet \
-  --state telangana --audit surnames_audit.json
+  --state andhra --audit surnames_audit.json
 upnaam resolve-gujarat gujarat_2017.parquet gujarat_2017_surnames.parquet \
   --romanization-lookup lookup.tsv.gz --audit gujarat_2017_surnames_audit.json
 ```

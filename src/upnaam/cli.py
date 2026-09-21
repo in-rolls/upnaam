@@ -786,7 +786,9 @@ def build_parser() -> argparse.ArgumentParser:
     electors.add_argument("electors", type=_path, help="the parsed roll (parquet)")
     electors.add_argument("output", type=_path)
     electors.add_argument(
-        "--state", required=True, choices=("telangana", "lakshadweep", "karnataka")
+        "--state",
+        required=True,
+        choices=("andhra", "telangana", "lakshadweep", "karnataka"),
     )
     electors.add_argument("--audit", type=_path)
     electors.add_argument(
