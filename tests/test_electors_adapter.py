@@ -28,6 +28,42 @@ def _roll(path: Path, rows: list[dict[str, object]]) -> Path:
     return path
 
 
+def test_andhra_uses_latin_names_and_treats_zero_house_as_missing(
+    tmp_path: Path,
+) -> None:
+    base = {
+        "id": "TEST1",
+        "relationship": "father",
+        "age": 30,
+        "sex": "Male",
+        "ac_name": "Test",
+        "district": "Test",
+        "part_no": 1,
+        "year": 2017,
+        "filename": "AC0010001.pdf",
+        "deleted": False,
+        "father_or_husband_name": "Rama",
+    }
+    rows = [
+        {**base, "number": 1, "house_no": "12", "elector_name": "Shiva Patil"},
+        {**base, "number": 2, "house_no": "12", "elector_name": "Geeta Patil"},
+        {**base, "number": 3, "house_no": "00", "elector_name": "Anil Rao"},
+        {**base, "number": 4, "house_no": "00", "elector_name": "Sunita Rao"},
+    ]
+    roll = _roll(tmp_path / "electors.parquet", rows)
+    out = tmp_path / "surnames.parquet"
+    report = build_elector_artifact(SOURCES["andhra"], roll, out)
+    got = {row["source_number"]: row for row in pq.read_table(out).to_pylist()}
+    assert report.rows == 4
+    assert report.households == 1
+    assert got["1"]["surname_latin_normalized"] == "patil"
+    assert got["1"]["surname_evidence"] == "household"
+    assert got["1"]["resolver_revision"] == "andhra-elector-resolver-v1"
+    for number in ("3", "4"):
+        assert got[number]["abstained"]
+        assert got[number]["household_id"] is None
+
+
 @pytest.mark.parametrize("filename", ["electors.parquet", "elector's.parquet"])
 def test_lakshadweep_uses_romanized_columns_and_house_evidence(
     tmp_path: Path, filename: str

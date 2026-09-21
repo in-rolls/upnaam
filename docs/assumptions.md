@@ -144,10 +144,7 @@ English name parser, caste inference, or manual surname annotation is used.
 The Punjab person-level artifact does not use the relative-name or household
 fields to alter its final-token selection.
 
-Household, relation-name and house-name evidence is used by the electors adapter
-(Telangana under `telangana-elector-resolver-v2`, Lakshadweep under
-`lakshadweep-elector-resolver-v1`; rules in `upnaam.corroboration`,
-`corroboration-v1`): a surname is the written token a co-resident, the relation
-name or the elector's own house field corroborates, with no positional fallback.
-Those rules are documented on the Telangana and Lakshadweep pages and do not
-change `resolver-v1` for the states listed above.
+The Andhra Pradesh and Telangana elector adapters use household and relation-name
+evidence. The Lakshadweep adapter also uses printed house-name evidence. These
+adapters abstain when no source corroborates a surname token; they do not use a
+position fallback.
