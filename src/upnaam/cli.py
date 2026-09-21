@@ -153,6 +153,37 @@ def _resolve_punjab(args: argparse.Namespace) -> None:
         write_punjab_summary(args.summary, report)
 
 
+def _resolve_gujarat(args: argparse.Namespace) -> None:
+    import hashlib
+    from importlib import import_module
+
+    from upnaam.adapters.gujarat import (
+        build_gujarat_elector_artifact,
+        write_gujarat_audit,
+    )
+
+    try:
+        lookup_class = import_module("indicate.lookup").Lookup
+    except ImportError as exc:
+        raise ValueError(
+            "Gujarat romanization requires Python 3.13+ and upnaam[romanization]"
+        ) from exc
+    lookup = lookup_class.from_path(args.romanization_lookup)
+    if lookup is None:
+        raise ValueError("The local Gujarati romanization lookup is unavailable")
+    with args.romanization_lookup.open("rb") as handle:
+        revision = "sha256:" + hashlib.file_digest(handle, "sha256").hexdigest()
+    report = build_gujarat_elector_artifact(
+        args.electors,
+        args.output,
+        romanize_token=lookup.get,
+        transliteration_revision=revision,
+        batch_size=args.batch_size,
+    )
+    if args.audit:
+        write_gujarat_audit(args.audit, report)
+
+
 def _resolve_electors(args: argparse.Namespace) -> None:
     from upnaam.adapters.electors import (
         SOURCES,
@@ -737,6 +768,16 @@ def build_parser() -> argparse.ArgumentParser:
     punjab.add_argument("--summary", type=_path)
     punjab.add_argument("--batch-size", type=int, default=100_000)
     punjab.set_defaults(handler=_resolve_punjab)
+
+    gujarat = commands.add_parser(
+        "resolve-gujarat", help="build the recovered Gujarat 2017 surname artifact"
+    )
+    gujarat.add_argument("electors", type=_path)
+    gujarat.add_argument("output", type=_path)
+    gujarat.add_argument("--romanization-lookup", type=_path, required=True)
+    gujarat.add_argument("--audit", type=_path)
+    gujarat.add_argument("--batch-size", type=int, default=100_000)
+    gujarat.set_defaults(handler=_resolve_gujarat)
 
     electors = commands.add_parser(
         "resolve-electors",
