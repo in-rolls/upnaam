@@ -125,6 +125,35 @@ CALIBRATED_PROFILE = replace(
     ),
 )
 
+DEMOGRAPHICS_PROFILE = replace(
+    CALIBRATED_PROFILE,
+    source=replace(
+        CALIBRATED_PROFILE.source,
+        source_revision="jk-urdu-2018-demographics",
+        excluded_tokens=frozenset(
+            {
+                "مسماۃ",
+                "مسماتہ",
+                "مشماتہ",
+                "مسمات",
+                "مسماہ",
+                "مسما",
+                "مسماتا",
+                "مسمی",
+                "شریمتی",
+                "شری",
+            }
+        ),
+        resolver_revision="jk-urdu-elector-resolver-v5",
+    ),
+    parser_filename="build_jk_rolls.py",
+    description=(
+        "Calibrated native names with house evidence recovered from the exact "
+        "same source cards. Demographic joins preserve source hashes, entry and "
+        "event keys, page, serial, ID and eligibility."
+    ),
+)
+
 
 def resolve_jk_urdu(
     inventory: Path,
@@ -143,10 +172,17 @@ def resolve_jk_urdu(
 
     Returns:
         Source validation, exclusions, evidence counts and artifact hashes.
+
+    Raises:
+        ValueError: A demographic enrichment lacks its source provenance.
     """
     audit = json.loads(source_audit.read_text())
     scripts = audit.get("script_sha256", {})
-    if CALIBRATED_PROFILE.parser_filename in scripts:
+    if DEMOGRAPHICS_PROFILE.parser_filename in scripts:
+        if not audit.get("demographic_enrichment"):
+            raise ValueError("Enriched Urdu inventory requires demographic provenance")
+        profile = DEMOGRAPHICS_PROFILE
+    elif CALIBRATED_PROFILE.parser_filename in scripts:
         profile = CALIBRATED_PROFILE
     elif NASTALEEQ_PROFILE.parser_filename in scripts:
         profile = NASTALEEQ_PROFILE
@@ -156,7 +192,9 @@ def resolve_jk_urdu(
         return resolve_inventory(inventory, source_audit, output_dir, profile)
     mapping, revision = load_romanization_map(romanization_map, arabic_tokens)
     mapped_revision = (
-        "jk-urdu-elector-resolver-v4"
+        "jk-urdu-elector-resolver-v5"
+        if profile is DEMOGRAPHICS_PROFILE
+        else "jk-urdu-elector-resolver-v4"
         if profile is CALIBRATED_PROFILE
         else "jk-urdu-elector-resolver-v2"
     )

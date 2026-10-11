@@ -1,4 +1,4 @@
-.PHONY: sync format lint test build ci ci-docker clean
+.PHONY: sync format lint test docs build ci ci-docker clean
 
 sync:
 	uv sync --all-groups
@@ -18,6 +18,9 @@ test:
 
 build:
 	uv build
+
+docs:
+	uv run --group docs sphinx-build -W --keep-going -b html docs docs/_build/html
 
 ci: lint test build
 

@@ -4,6 +4,14 @@ All notable changes to Upnaam will be documented here.
 
 ## Unreleased
 
+- Add a distinct J&K Urdu demographic-enrichment profile, requiring explicit
+  enrichment provenance and keeping its resolver revision separate from the
+  published calibrated baseline. Exclude ten documented designation tokens
+  from all evidence paths while retaining raw names and recording exclusions.
+
+- Document the retained J&K inventories, maps and accepted handoffs in Instate,
+  with commands to reproduce each language's output after recovery cleanup.
+
 - Add the calibrated full J&K Urdu profile. Preserve 4,608,102 active assembly
   records, select 970,947 corroborated native occurrences, and apply the shared
   27,221-pair map to all 4,399 selected token types without changing native

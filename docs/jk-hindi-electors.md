@@ -131,4 +131,22 @@ uncertain. The reviewed instate candidate changes only `बख्शी` from `b
 model answer. Exactly 25 Latin-name occurrences change; native selections,
 abstentions and household/relative evidence remain unchanged. This is a reviewed
 candidate map change, not a source-corpus or model update. The current handoff is
-`data/jk_recovery/hindi_reviewed_candidate/` in instate.
+`data/jk_2018/hindi/handoff/` in instate.
+
+## Retained Instate inputs
+
+The accepted input is now `instate/data/jk_2018/hindi/inventory.parquet`,
+with `source_audit.json` beside it. The accepted output is the adjacent
+`handoff/` directory. Instate's `make verify-jk` checks these files against its
+committed checksum list. Historical recovery paths in the source audits refer
+to `/Volumes/Staging/instate/jk_recovery_archive_20261010/`.
+
+Run from the Upnaam repository, with a new output directory:
+
+```sh
+uv run upnaam resolve-jk-hindi \
+  ../instate/data/jk_2018/hindi/inventory.parquet \
+  ../instate/data/jk_2018/hindi/source_audit.json \
+  /tmp/jk-hindi-verified \
+  --romanization-map ../instate/data/jk_2018/hindi/romanization_map.json
+```
