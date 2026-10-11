@@ -13,7 +13,7 @@ from test_jk_english import write_source
 
 from upnaam.adapters.arabic import arabic_tokens
 from upnaam.adapters.electors import build_elector_artifact
-from upnaam.adapters.jk_urdu import SOURCE, resolve_jk_urdu
+from upnaam.adapters.jk_urdu import DEMOGRAPHICS_PROFILE, SOURCE, resolve_jk_urdu
 from upnaam.cli import main
 
 if TYPE_CHECKING:
@@ -322,3 +322,68 @@ def test_calibrated_profile_records_distinct_source_and_resolver_revisions(
         "jk-urdu-elector-resolver-v4" if mapped else "jk-urdu-elector-resolver-v3"
     )
     assert all(row["elector_id"].startswith("jk-urdu-2018-calibrated:") for row in rows)
+
+
+def test_demographic_profile_requires_provenance_and_records_new_revision(
+    tmp_path: Path, urdu_source: tuple[Path, Path]
+) -> None:
+    inventory, audit = urdu_source
+    payload = json.loads(audit.read_text())
+    payload["script_sha256"]["build_jk_rolls.py"] = "5" * 64
+    audit.write_text(json.dumps(payload))
+    output = tmp_path / "enriched"
+    with pytest.raises(ValueError, match="demographic provenance"):
+        resolve_jk_urdu(inventory, audit, output)
+    payload["demographic_enrichment"] = {"base_inventory_sha256": "6" * 64}
+    audit.write_text(json.dumps(payload))
+    result = resolve_jk_urdu(inventory, audit, output)
+    assert result["source_revision"] == "jk-urdu-2018-demographics"
+    assert result["revision"] == "jk-urdu-elector-resolver-v5"
+    assert result["excluded_evidence_tokens"] == sorted(
+        DEMOGRAPHICS_PROFILE.source.excluded_tokens
+    )
+    rows = pq.read_table(output / "surnames.parquet").to_pylist()
+    assert all(
+        row["elector_id"].startswith("jk-urdu-2018-demographics:") for row in rows
+    )
+
+
+@pytest.mark.parametrize("title", sorted(DEMOGRAPHICS_PROFILE.source.excluded_tokens))
+@pytest.mark.parametrize("evidence", ["household", "relation"])
+def test_enriched_titles_cannot_corroborate_but_keep_source_text(
+    tmp_path, title, evidence
+):
+    path = tmp_path / "electors.parquet"
+    rows = [
+        {
+            "filename": "UACA032PS0001.pdf",
+            "number": str(i),
+            "id": None,
+            "age": None,
+            "sex": None,
+            "ac_name": None,
+            "district": None,
+            "part_no": "1",
+            "entry_event_key": str(i),
+            "elector_name": f"{title} {name}",
+            "father_or_husband_name": f"{title} نور"
+            if evidence == "relation"
+            else None,
+            "relationship": "father",
+            "deleted": False,
+            "elector_name_source": f"{title} {name}",
+            "relative_name_source": f"{title} نور" if evidence == "relation" else None,
+            "house_no": "10" if evidence == "household" else None,
+            "year": "2018",
+        }
+        for i, name in enumerate(("فاطمہ", "زینب"), 1)
+    ]
+    import pyarrow as pa
+
+    pq.write_table(pa.Table.from_pylist(rows), path)
+    out = tmp_path / "surnames.parquet"
+    build_elector_artifact(DEMOGRAPHICS_PROFILE.source, path, out)
+    result = pq.read_table(out).to_pylist()
+    assert len(result) == 2
+    assert all(r["abstained"] for r in result)
+    assert all(r["name_source_raw"].startswith(title) for r in result)

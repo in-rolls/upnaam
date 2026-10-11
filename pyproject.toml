@@ -97,3 +97,11 @@ check-yield-types = false
 check-class-attributes = false
 allow-init-docstring = true
 exclude = '\.venv|tests|docs'
+
+[tool.preen]
+# Rekhta blocks automated requests with 403/503; retain the cited entries.
+link_ignore = [
+    '^https://www\.rekhtadictionary\.com/meaning-of-musammaat\?lang=ur$',
+    '^https://www\.rekhtadictionary\.com/meaning-of-musammaa$',
+    '^https://www\.rekhtadictionary\.com/meaning-of-shiriimatii\?lang=ur$',
+]

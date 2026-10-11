@@ -49,3 +49,20 @@ The source parser's count discrepancies, truncated PDFs and missing closing
 controls remain unresolved. The handoff cannot correct those defects. No Urdu
 or Hindi names, romanization, national lookup updates or model weights enter this
 command. Person-level files remain local; share aggregate checks and hashes.
+
+## Retained Instate inputs
+
+The accepted input is now `instate/data/jk_2018/english/inventory.parquet`,
+with `source_audit.json` beside it. The accepted output is the adjacent
+`handoff/` directory. Instate's `make verify-jk` checks these files against its
+committed checksum list. Historical recovery paths in the source audits refer
+to `/Volumes/Staging/instate/jk_recovery_archive_20261010/`.
+
+Run from the Upnaam repository, with a new output directory:
+
+```sh
+uv run upnaam resolve-jk-english \
+  ../instate/data/jk_2018/english/inventory.parquet \
+  ../instate/data/jk_2018/english/source_audit.json \
+  /tmp/jk-english-verified
+```

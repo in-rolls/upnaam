@@ -50,6 +50,7 @@ from upnaam.corroboration import (
 )
 from upnaam.normalization import (
     NORMALIZATION_REVISION,
+    NameToken,
     normalize_latin_token,
     normalize_name,
 )
@@ -92,6 +93,7 @@ class ElectorSource:
     confidence_diagnostic: bool = True
     evidence_script: Literal["latin", "devanagari", "arabic"] = "latin"
     record_key_column: str | None = None
+    excluded_tokens: frozenset[str] = frozenset()
 
 
 SOURCES: dict[str, ElectorSource] = {
@@ -485,6 +487,17 @@ def build_elector_artifact(
             )
         native_tokenizer = KannadaEvidenceTokens(romanize_token)
         tokenizer = native_tokenizer
+    if spec.excluded_tokens:
+        base_tokenizer = tokenizer
+
+        def eligible_tokens(value: object) -> tuple[NameToken, ...]:
+            return tuple(
+                token
+                for token in base_tokenizer(value)
+                if token.normalized not in spec.excluded_tokens
+            )
+
+        tokenizer = eligible_tokens
     position = position or spec.position
     output_path.parent.mkdir(parents=True, exist_ok=True)
     temporary = output_path.with_suffix(f"{output_path.suffix}.tmp")

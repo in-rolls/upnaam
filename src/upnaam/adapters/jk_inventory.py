@@ -319,6 +319,8 @@ def resolve_inventory(
             },
             "limitations": profile.limitations,
         }
+        if spec.excluded_tokens:
+            report["excluded_evidence_tokens"] = sorted(spec.excluded_tokens)
         if romanize_token is not None:
             import duckdb
 
