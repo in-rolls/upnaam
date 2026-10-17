@@ -23,7 +23,7 @@ candidates are produced separately by :mod:`upnaam.relative` after this pass.
 
 Ties inside a rung go to the state's position rule when one exists, otherwise to the
 rightmost token. Tokens such as reddy, rao, singh or kumar are surnames people go by and
-are never demoted in favour of a rarer token.
+are never demoted in favor of a rarer token.
 
 Spellings inside one household may differ by a slip. A token counts as shared when it
 is within the longer token's edit slack: exact only under four letters (ram / rao); one

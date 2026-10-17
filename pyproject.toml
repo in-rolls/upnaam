@@ -59,6 +59,7 @@ source = ["src/upnaam"]
 branch = true
 
 [tool.codespell]
+builtin = "clear,rare,en-GB_to_en-US"
 ignore-words-list = "unknwn,vai"
 
 [tool.pyright]

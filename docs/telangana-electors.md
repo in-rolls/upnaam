@@ -34,7 +34,7 @@ name (three letters or more; not a prefix honorific, a name particle such as `md
 
 Ties inside a rung go to the rightmost token (a position rule, where a state has one,
 would break them instead). Reddy, rao, singh and kumar are surnames people go by and are
-never demoted in favour of a rarer token. Names with no corroborated token abstain with
+never demoted in favor of a rarer token. Names with no corroborated token abstain with
 `no-evidence`; consumers decide whether a positional guess is acceptable for their use.
 
 Spellings within a household may differ by a slip. Two tokens count as one name when they
