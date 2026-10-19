@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 import pyarrow as pa
 import pyarrow.parquet as pq
 
+from upnaam.adapters._shared import SURNAME_FIELDS
 from upnaam.normalization import (
     NORMALIZATION_REVISION,
     normalize_latin_token,
@@ -38,17 +39,7 @@ GUJARAT_OUTPUT_SCHEMA = pa.schema(
         ("relationship", pa.string()),
         ("name_source_raw", pa.string()),
         ("relative_name_source_raw", pa.string()),
-        ("surname_raw", pa.string()),
-        ("surname_source_normalized", pa.string()),
-        ("surname_latin_raw", pa.string()),
-        ("surname_latin_normalized", pa.string()),
-        ("surname_canonical", pa.string()),
-        ("canonicalization_status", pa.string()),
-        ("canonicalization_reason", pa.string()),
-        ("canonicalization_provenance", pa.string()),
-        ("canonicalization_revision", pa.string()),
-        ("surname_position", pa.string()),
-        ("surname_provenance", pa.string()),
+        *SURNAME_FIELDS,
         ("surname_evidence", pa.string()),
         ("abstained", pa.bool_()),
         ("abstention_reason", pa.string()),
