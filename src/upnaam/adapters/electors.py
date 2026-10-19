@@ -40,6 +40,7 @@ from typing import TYPE_CHECKING, Literal
 import pyarrow as pa
 import pyarrow.parquet as pq
 
+from upnaam.adapters._shared import SURNAME_FIELDS
 from upnaam.corroboration import (
     CORROBORATION_REVISION,
     CorroboratedSurname,
@@ -156,17 +157,7 @@ OUTPUT_SCHEMA = pa.schema(
         ("district_source_raw", pa.string()),
         ("ac_name_latin_raw", pa.string()),
         ("district_latin_raw", pa.string()),
-        ("surname_raw", pa.string()),
-        ("surname_source_normalized", pa.string()),
-        ("surname_latin_raw", pa.string()),
-        ("surname_latin_normalized", pa.string()),
-        ("surname_canonical", pa.string()),
-        ("canonicalization_status", pa.string()),
-        ("canonicalization_reason", pa.string()),
-        ("canonicalization_provenance", pa.string()),
-        ("canonicalization_revision", pa.string()),
-        ("surname_position", pa.string()),
-        ("surname_provenance", pa.string()),
+        *SURNAME_FIELDS,
         ("surname_evidence", pa.string()),
         ("surname_confidence", pa.float64()),
         ("abstained", pa.bool_()),

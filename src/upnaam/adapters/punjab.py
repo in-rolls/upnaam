@@ -13,6 +13,7 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 
+from upnaam.adapters._shared import SURNAME_FIELDS
 from upnaam.normalization import (
     NORMALIZATION_REVISION,
     normalize_latin_token,
@@ -95,17 +96,7 @@ PUNJAB_OUTPUT_SCHEMA = pa.schema(
         ("main_town_latin_raw", pa.string()),
         ("district_native_raw", pa.string()),
         ("district_latin_raw", pa.string()),
-        ("surname_raw", pa.string()),
-        ("surname_source_normalized", pa.string()),
-        ("surname_latin_raw", pa.string()),
-        ("surname_latin_normalized", pa.string()),
-        ("surname_canonical", pa.string()),
-        ("canonicalization_status", pa.string()),
-        ("canonicalization_reason", pa.string()),
-        ("canonicalization_provenance", pa.string()),
-        ("canonicalization_revision", pa.string()),
-        ("surname_position", pa.string()),
-        ("surname_provenance", pa.string()),
+        *SURNAME_FIELDS,
         ("abstained", pa.bool_()),
         ("abstention_reason", pa.string()),
         ("transliteration_status", pa.string()),
