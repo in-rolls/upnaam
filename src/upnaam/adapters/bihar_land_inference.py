@@ -8,14 +8,13 @@ from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING, cast
 
 import pyarrow as pa
-import pyarrow.compute as pc
 import pyarrow.parquet as pq
 
+from upnaam.adapters._shared import choose_raw_mode, read_distinct_land_names
 from upnaam.normalization import NORMALIZATION_REVISION
 from upnaam.selection import extract_surname_candidates
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
     from pathlib import Path
 
 
@@ -72,11 +71,6 @@ class BiharLandInferenceReport:
     abstentions_by_reason: dict[str, int]
 
 
-def _mode(raw_counts: Mapping[str, int]) -> tuple[str, int]:
-    """Choose the most frequent raw value, breaking ties lexicographically."""
-    return min(raw_counts.items(), key=lambda item: (-item[1], item[0]))
-
-
 def infer_bihar_land_surname_counts(
     input_path: Path,
     output_path: Path,
@@ -109,22 +103,9 @@ def infer_bihar_land_surname_counts(
     """
     if batch_size < 1:
         raise ValueError("batch_size must be at least one")
-    parquet = pq.ParquetFile(input_path)
-    if name_column not in parquet.schema_arrow.names:
-        raise ValueError(f"Bihar land names are missing column: {name_column}")
-    field = parquet.schema_arrow.field(name_column)
-    if not (pa.types.is_string(field.type) or pa.types.is_large_string(field.type)):
-        raise ValueError("Bihar land name column must have a string type")
-
-    table = parquet.read(columns=[name_column])
-    names = table.column(name_column)
-    source_rows = len(names)
-    nonnull_name_rows = source_rows - names.null_count
-    distinct_source_names = cast(
-        "int", pc.call_function("count_distinct", [names]).as_py()
+    table, source_rows, nonnull_name_rows, distinct_source_names = (
+        read_distinct_land_names(input_path, name_column)
     )
-    if distinct_source_names != nonnull_name_rows:
-        raise ValueError("Bihar land input must contain distinct nonnull names")
 
     surname_counts: Counter[str] = Counter()
     raw_counts: defaultdict[str, Counter[str]] = defaultdict(Counter)
@@ -170,7 +151,7 @@ def infer_bihar_land_surname_counts(
 
     rows: list[dict[str, object]] = []
     for normalized, count in surname_counts.items():
-        raw_mode, raw_mode_count = _mode(raw_counts[normalized])
+        raw_mode, raw_mode_count = choose_raw_mode(raw_counts[normalized])
         rows.append(
             {
                 "surname_inferred_normalized": normalized,

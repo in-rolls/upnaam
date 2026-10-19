@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from collections import Counter, defaultdict
 from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING, Any, cast
@@ -11,6 +10,7 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 
+from upnaam.adapters._shared import LINK_COLUMNS, write_audit
 from upnaam.normalization import NORMALIZATION_REVISION, NameToken
 from upnaam.selection import extract_surname_candidates
 
@@ -256,18 +256,7 @@ def build_rajasthan_ration_reference_labels(
     if batch_size < 1:
         raise ValueError("batch_size must be at least one")
     parquet = pq.ParquetFile(links_path)
-    required = {
-        "source",
-        "link_tier",
-        "link_id",
-        "roll_id",
-        "external_id",
-        "roll_name_raw",
-        "external_name_raw",
-        "relation_type",
-        "sex",
-        "name_exact_upstream",
-    }
+    required = LINK_COLUMNS
     missing = required.difference(parquet.schema_arrow.names)
     if missing:
         raise ValueError(
@@ -357,12 +346,7 @@ def write_rajasthan_reference_audit(
     path: Path, report: RajasthanReferenceReport
 ) -> None:
     """Write aggregate Rajasthan reference-label diagnostics as JSON."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_suffix(f"{path.suffix}.tmp")
-    with temporary.open("w", encoding="utf-8") as stream:
-        json.dump(asdict(report), stream, indent=2, sort_keys=True)
-        stream.write("\n")
-    temporary.replace(path)
+    write_audit(path, asdict(report))
 
 
 def write_rajasthan_reference_summary(
