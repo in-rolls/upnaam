@@ -12,6 +12,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 from rapidfuzz.distance import Levenshtein
 
+from upnaam.adapters._shared import write_rows_parquet
 from upnaam.selection import extract_surname_candidates
 
 if TYPE_CHECKING:
@@ -87,7 +88,6 @@ def build_rajasthan_surname_evidence(
 
     Raises:
         ValueError: If inputs violate the accepted-link contract.
-        BaseException: After removing an incomplete temporary output.
 
     Notes:
         The ration-side final eligible token is a provisional anchor, not gold
@@ -157,18 +157,7 @@ def build_rajasthan_surname_evidence(
                 "evidence_revision": RAJASTHAN_EVIDENCE_REVISION,
             }
         )
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = output_path.with_suffix(f"{output_path.suffix}.tmp")
-    try:
-        pq.write_table(
-            pa.Table.from_pylist(rows, schema=RAJASTHAN_EVIDENCE_SCHEMA),
-            temporary,
-            compression="zstd",
-        )
-        temporary.replace(output_path)
-    except BaseException:
-        temporary.unlink(missing_ok=True)
-        raise
+    write_rows_parquet(rows, RAJASTHAN_EVIDENCE_SCHEMA, output_path)
     return RajasthanEvidenceReport(
         accepted_links=accepted_links,
         surname_pairs=surname_pairs,

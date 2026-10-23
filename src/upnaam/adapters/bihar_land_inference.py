@@ -8,9 +8,12 @@ from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING, cast
 
 import pyarrow as pa
-import pyarrow.parquet as pq
 
-from upnaam.adapters._shared import choose_raw_mode, read_distinct_land_names
+from upnaam.adapters._shared import (
+    choose_raw_mode,
+    read_distinct_land_names,
+    write_rows_parquet,
+)
 from upnaam.normalization import NORMALIZATION_REVISION
 from upnaam.selection import extract_surname_candidates
 
@@ -92,7 +95,6 @@ def infer_bihar_land_surname_counts(
     Raises:
         ValueError: If the input column is absent, non-textual, duplicated, or
             ``batch_size`` is invalid.
-        BaseException: After removing an incomplete temporary output.
 
     Notes:
         Only an exact normalized match to ``BIHAR_LAND_RECORD_SUFFIXES`` starts
@@ -174,18 +176,7 @@ def infer_bihar_land_surname_counts(
         )
     )
 
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = output_path.with_suffix(f"{output_path.suffix}.tmp")
-    try:
-        pq.write_table(
-            pa.Table.from_pylist(rows, schema=BIHAR_LAND_INFERRED_SCHEMA),
-            temporary,
-            compression="zstd",
-        )
-        temporary.replace(output_path)
-    except BaseException:
-        temporary.unlink(missing_ok=True)
-        raise
+    write_rows_parquet(rows, BIHAR_LAND_INFERRED_SCHEMA, output_path)
 
     adjusted_names = sum(previous_token_counts.values()) + sum(
         chain_token_counts.values()

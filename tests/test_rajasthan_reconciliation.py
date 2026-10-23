@@ -89,3 +89,17 @@ def test_rajasthan_evidence_rejects_contract_violations(tmp_path: Path) -> None:
     frame.to_parquet(invalid, index=False)
     with pytest.raises(ValueError, match="unsupported"):
         build_rajasthan_surname_evidence(invalid, tmp_path / "out.parquet")
+
+
+def test_rajasthan_evidence_failed_replace_removes_temporary(tmp_path: Path) -> None:
+    links = tmp_path / "links.parquet"
+    output = tmp_path / "evidence.parquet"
+    output.mkdir()
+    (output / "occupied").write_text("x")
+    _links().to_parquet(links, index=False)
+
+    with pytest.raises(IsADirectoryError):
+        build_rajasthan_surname_evidence(links, output)
+
+    assert not (tmp_path / "evidence.parquet.tmp").exists()
+    assert (output / "occupied").read_text() == "x"
