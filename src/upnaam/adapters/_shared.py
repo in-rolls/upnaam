@@ -89,3 +89,30 @@ def write_audit(path: Path, report: Mapping[str, object]) -> None:
         json.dump(report, stream, indent=2, sort_keys=True)
         stream.write("\n")
     temporary.replace(path)
+
+
+def write_rows_parquet(
+    rows: list[dict[str, object]], schema: pa.Schema, output_path: Path
+) -> None:
+    """Write rows to zstd Parquet through a temporary file, removed on failure.
+
+    Args:
+        rows: Records matching the schema.
+        schema: Arrow schema for the written table.
+        output_path: Destination Parquet path.
+
+    Raises:
+        BaseException: After removing an incomplete temporary output.
+    """
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = output_path.with_suffix(f"{output_path.suffix}.tmp")
+    try:
+        pq.write_table(
+            pa.Table.from_pylist(rows, schema=schema),
+            temporary,
+            compression="zstd",
+        )
+        temporary.replace(output_path)
+    except BaseException:
+        temporary.unlink(missing_ok=True)
+        raise

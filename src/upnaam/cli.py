@@ -280,6 +280,26 @@ def _bihar_reference_labels(args: argparse.Namespace) -> None:
         )
 
 
+def _write_bihar_land_manifest(
+    args: argparse.Namespace,
+    *,
+    stage: str,
+    row_counts: dict[str, int],
+    parameters: dict[str, Any],
+) -> None:
+    outputs = [args.output]
+    if args.audit is not None:
+        outputs.append(args.audit)
+    write_manifest(
+        args.manifest,
+        stage=stage,
+        inputs=[args.input],
+        outputs=outputs,
+        row_counts=row_counts,
+        parameters=parameters,
+    )
+
+
 def _bihar_land_counts(args: argparse.Namespace) -> None:
     report = build_bihar_land_surname_counts(
         args.input,
@@ -290,14 +310,9 @@ def _bihar_land_counts(args: argparse.Namespace) -> None:
     if args.audit:
         write_bihar_land_aggregate_audit(args.audit, report)
     if args.manifest:
-        outputs = [args.output]
-        if args.audit is not None:
-            outputs.append(args.audit)
-        write_manifest(
-            args.manifest,
+        _write_bihar_land_manifest(
+            args,
             stage="bihar_land_surname_counts",
-            inputs=[args.input],
-            outputs=outputs,
             row_counts={
                 "source_rows": report.source_rows,
                 "nonnull_name_rows": report.nonnull_name_rows,
@@ -326,14 +341,9 @@ def _bihar_land_inference(args: argparse.Namespace) -> None:
     if args.audit:
         write_bihar_land_inference_audit(args.audit, report)
     if args.manifest:
-        outputs = [args.output]
-        if args.audit is not None:
-            outputs.append(args.audit)
-        write_manifest(
-            args.manifest,
+        _write_bihar_land_manifest(
+            args,
             stage="bihar_land_inferred_surname_counts",
-            inputs=[args.input],
-            outputs=outputs,
             row_counts={
                 "source_rows": report.source_rows,
                 "nonnull_name_rows": report.nonnull_name_rows,
