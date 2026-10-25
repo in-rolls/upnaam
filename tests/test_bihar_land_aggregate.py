@@ -106,3 +106,49 @@ def test_bihar_land_counts_rejects_invalid_contract(tmp_path: Path) -> None:
         build_bihar_land_surname_counts(
             missing, tmp_path / "counts.parquet", batch_size=0
         )
+
+
+@pytest.mark.parametrize("with_audit", [True, False])
+def test_bihar_land_counts_cli_manifest_contents(
+    tmp_path: Path, with_audit: bool
+) -> None:
+    source = tmp_path / "names.parquet"
+    output = tmp_path / "counts.parquet"
+    audit = tmp_path / "audit.json"
+    manifest = tmp_path / "manifest.json"
+    _names().to_parquet(source, index=False)
+    audit_args = ["--audit", str(audit)] if with_audit else []
+
+    main(
+        [
+            "aggregate-bihar-land",
+            str(source),
+            str(output),
+            *audit_args,
+            "--manifest",
+            str(manifest),
+        ]
+    )
+
+    payload = json.loads(manifest.read_text())
+    expected_outputs = [output, audit] if with_audit else [output]
+    assert [item["path"] for item in payload["inputs"]] == [str(source.resolve())]
+    assert [item["path"] for item in payload["outputs"]] == [
+        str(path.resolve()) for path in expected_outputs
+    ]
+    assert audit.exists() is with_audit
+    assert payload["row_counts"] == {
+        "abstained_names": 2,
+        "distinct_surnames": 3,
+        "nonnull_name_rows": 5,
+        "selected_names": 4,
+        "source_rows": 6,
+    }
+    assert payload["parameters"] == {
+        "aggregate_revision": BIHAR_LAND_AGGREGATE_REVISION,
+        "input_unit": "distinct_official_full_name_string",
+        "name_column": "name_of_ryot",
+        "normalization_revision": "normalization-v2",
+        "surname_provenance": "bihar_land_written_final_token",
+        "surname_rule": "last_eligible_token",
+    }

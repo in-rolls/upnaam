@@ -135,3 +135,54 @@ def test_bihar_land_inference_rejects_invalid_contract(tmp_path: Path) -> None:
         infer_bihar_land_surname_counts(
             missing, tmp_path / "inferred.parquet", batch_size=0
         )
+
+
+@pytest.mark.parametrize("with_audit", [True, False])
+def test_bihar_land_inference_cli_manifest_contents(
+    tmp_path: Path, with_audit: bool
+) -> None:
+    source = tmp_path / "names.parquet"
+    output = tmp_path / "inferred.parquet"
+    audit = tmp_path / "audit.json"
+    manifest = tmp_path / "manifest.json"
+    _names().to_parquet(source, index=False)
+    audit_args = ["--audit", str(audit)] if with_audit else []
+
+    main(
+        [
+            "infer-bihar-land",
+            str(source),
+            str(output),
+            *audit_args,
+            "--manifest",
+            str(manifest),
+        ]
+    )
+
+    payload = json.loads(manifest.read_text())
+    expected_outputs = [output, audit] if with_audit else [output]
+    assert [item["path"] for item in payload["inputs"]] == [str(source.resolve())]
+    assert [item["path"] for item in payload["outputs"]] == [
+        str(path.resolve()) for path in expected_outputs
+    ]
+    assert audit.exists() is with_audit
+    assert payload["row_counts"] == {
+        "abstained_names": 3,
+        "distinct_inferred_surnames": 5,
+        "inferred_names": 6,
+        "nonnull_name_rows": 8,
+        "record_suffix_adjusted_names": 4,
+        "record_suffix_chain_adjusted_names": 3,
+        "source_rows": 9,
+    }
+    assert payload["parameters"] == {
+        "inference_revision": BIHAR_LAND_INFERENCE_REVISION,
+        "inference_source": "bihar_land_distinct_official_name_vocabulary",
+        "input_unit": "distinct_official_full_name_string",
+        "name_column": "name_of_ryot",
+        "normalization_revision": "normalization-v2",
+        "record_connectors": sorted(BIHAR_LAND_RECORD_CONNECTORS),
+        "record_suffix_matching": "exact_normalized_token",
+        "record_suffixes": sorted(BIHAR_LAND_RECORD_SUFFIXES),
+        "surname_rule": "first_name_token_before_exact_record_suffix_chain",
+    }

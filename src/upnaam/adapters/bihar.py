@@ -10,7 +10,7 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from upnaam.adapters._shared import LINK_COLUMNS, write_audit
+from upnaam.adapters._shared import LINK_COLUMNS, write_audit, write_rows_parquet
 from upnaam.normalization import NORMALIZATION_REVISION, NameToken, normalize_name
 from upnaam.selection import extract_surname_candidates
 
@@ -110,7 +110,6 @@ def build_bihar_land_reference_labels(
 
     Raises:
         ValueError: If the input violates the exact one-to-one link contract.
-        BaseException: After removing an incomplete temporary output.
 
     Notes:
         The official land record is treated as the preferred transcription.
@@ -237,18 +236,7 @@ def build_bihar_land_reference_labels(
                 }
             )
 
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = output_path.with_suffix(f"{output_path.suffix}.tmp")
-    try:
-        pq.write_table(
-            pa.Table.from_pylist(rows, schema=BIHAR_REFERENCE_SCHEMA),
-            temporary,
-            compression="zstd",
-        )
-        temporary.replace(output_path)
-    except BaseException:
-        temporary.unlink(missing_ok=True)
-        raise
+    write_rows_parquet(rows, BIHAR_REFERENCE_SCHEMA, output_path)
     return BiharReferenceReport(
         source_links=len(rows),
         accepted_labels=statuses["accepted"],
