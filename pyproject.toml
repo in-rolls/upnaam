@@ -9,7 +9,7 @@ description = "Resolve surnames in parsed Indian electoral rolls"
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
-requires-python = ">=3.11"
+requires-python = ">=3.13"
 dependencies = [
     "duckdb>=1.5.5",
     "numpy>=2",
@@ -68,7 +68,7 @@ typeCheckingMode = "standard"
 
 [tool.ruff]
 line-length = 88
-target-version = "py311"
+target-version = "py313"
 
 [tool.ruff.lint]
 external = ["DOC"]
