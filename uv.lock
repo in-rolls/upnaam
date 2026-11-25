@@ -2867,10 +2867,10 @@ requires-dist = [
     { name = "duckdb", specifier = ">=1.5.5" },
     { name = "indexed-gzip", marker = "extra == 'compressed-sqlite'", specifier = ">=1.10.3" },
     { name = "indicate", marker = "python_full_version >= '3.13' and extra == 'romanization'", specifier = ">=0.10.0" },
-    { name = "numpy", specifier = ">=2" },
-    { name = "pandas", specifier = ">=2.2" },
+    { name = "numpy", specifier = ">=2.1.0" },
+    { name = "pandas", specifier = ">=2.2.3" },
     { name = "pyarrow", specifier = ">=18,!=19.0.0" },
-    { name = "rapidfuzz", specifier = ">=3.14" },
+    { name = "rapidfuzz", specifier = ">=3.14.1" },
 ]
 provides-extras = ["romanization", "compressed-sqlite"]
 
